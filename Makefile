@@ -7,18 +7,24 @@ multipart_parser.o: multipart_parser.c multipart_parser.h
 solib: multipart_parser.o
 	$(CC) -shared -Wl,-soname,libmultipart.so -o libmultipart.so multipart_parser.o
 
-test: test_basic test_binary
+test: test_basic test_binary test_rfc
 	@echo "Running basic tests..."
 	./test_basic
 	@echo ""
 	@echo "Running binary data tests..."
 	./test_binary
+	@echo ""
+	@echo "Running RFC 2046 compliance tests..."
+	./test_rfc
 
 test_basic: test_basic.c multipart_parser.c multipart_parser.h
 	$(CC) $(CFLAGS) -o test_basic test_basic.c multipart_parser.c
 
 test_binary: test_binary.c multipart_parser.c multipart_parser.h
 	$(CC) $(CFLAGS) -o test_binary test_binary.c multipart_parser.c
+
+test_rfc: test_rfc.c multipart_parser.c multipart_parser.h
+	$(CC) $(CFLAGS) -o test_rfc test_rfc.c multipart_parser.c
 
 test_performance: test_performance.c multipart_parser.c multipart_parser.h
 	$(CC) $(CFLAGS) -o test_performance test_performance.c multipart_parser.c
@@ -28,4 +34,4 @@ benchmark: test_performance
 	./test_performance
 
 clean:
-	rm -f *.o *.so test_basic test_binary test_performance
+	rm -f *.o *.so test_basic test_binary test_rfc test_performance

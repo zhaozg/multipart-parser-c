@@ -69,8 +69,8 @@ void test_binary_with_cr(void) {
     
     /* Build test data: boundary + headers + binary data with CR */
     pos = 0;
-    memcpy(data + pos, "testbound\r\n", 11);
-    pos += 11;
+    memcpy(data + pos, "--testbound\r\n", 13);
+    pos += 13;
     memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
     pos += 41;
     memcpy(data + pos, "\r\n", 2);
@@ -131,8 +131,8 @@ void test_binary_with_null(void) {
     
     /* Build test data with NULL bytes */
     pos = 0;
-    memcpy(data + pos, "nulltest\r\n", 10);
-    pos += 10;
+    memcpy(data + pos, "--nulltest\r\n", 12);
+    pos += 12;
     memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
     pos += 41;
     memcpy(data + pos, "\r\n", 2);
@@ -183,8 +183,8 @@ void test_binary_with_boundary_like_data(void) {
     
     /* Build test data */
     pos = 0;
-    memcpy(data + pos, "xyz123\r\n", 8);
-    pos += 8;
+    memcpy(data + pos, "--xyz123\r\n", 10);
+    pos += 10;
     memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
     pos += 41;
     memcpy(data + pos, "\r\n", 2);
@@ -236,8 +236,8 @@ void test_binary_high_bytes(void) {
     
     /* Build test data */
     pos = 0;
-    memcpy(data + pos, "highbyte\r\n", 10);
-    pos += 10;
+    memcpy(data + pos, "--highbyte\r\n", 12);
+    pos += 12;
     memcpy(data + pos, "Content-Type: image/jpeg\r\n", 26);  /* Fix: was 27 */
     pos += 26;
     memcpy(data + pos, "\r\n", 2);
@@ -293,8 +293,8 @@ void test_binary_all_zeros(void) {
     
     /* Build test data */
     pos = 0;
-    memcpy(data + pos, "zeros\r\n", 7);
-    pos += 7;
+    memcpy(data + pos, "--zeros\r\n", 9);
+    pos += 9;
     memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
     pos += 41;
     memcpy(data + pos, "\r\n", 2);
@@ -343,8 +343,8 @@ void test_binary_with_crlf_sequences(void) {
     
     /* Build test data */
     pos = 0;
-    memcpy(data + pos, "crlftest\r\n", 10);
-    pos += 10;
+    memcpy(data + pos, "--crlftest\r\n", 12);
+    pos += 12;
     memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
     pos += 41;
     memcpy(data + pos, "\r\n", 2);
