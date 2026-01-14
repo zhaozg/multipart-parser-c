@@ -1,0 +1,144 @@
+name: Upstream Tracking Check
+
+# This workflow periodically checks the upstream repository for new issues and PRs
+# It creates an issue report when new items are found
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC (weekly check)
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-upstream:
+    name: Check Upstream Repository
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup GitHub CLI
+        run: |
+          type -p gh >/dev/null 2>&1 || echo "GitHub CLI already installed"
+          
+      - name: Check for new upstream issues
+        id: check-issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking upstream issues..."
+          gh issue list \
+            --repo iafonov/multipart-parser-c \
+            --state open \
+            --limit 100 \
+            --json number,title,createdAt,url \
+            > /tmp/upstream-issues.json
+          
+          ISSUE_COUNT=$(jq length /tmp/upstream-issues.json)
+          echo "issue_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $ISSUE_COUNT open issues in upstream"
+          
+      - name: Check for new upstream PRs
+        id: check-prs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking upstream pull requests..."
+          gh pr list \
+            --repo iafonov/multipart-parser-c \
+            --state open \
+            --limit 100 \
+            --json number,title,createdAt,url \
+            > /tmp/upstream-prs.json
+          
+          PR_COUNT=$(jq length /tmp/upstream-prs.json)
+          echo "pr_count=$PR_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $PR_COUNT open PRs in upstream"
+          
+      - name: Generate report
+        id: generate-report
+        run: |
+          cat > /tmp/upstream-report.md << 'EOF'
+          # Upstream Tracking Report
+          
+          **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Upstream**: [iafonov/multipart-parser-c](https://github.com/iafonov/multipart-parser-c)
+          
+          ## Summary
+          
+          - Open Issues: ${{ steps.check-issues.outputs.issue_count }}
+          - Open PRs: ${{ steps.check-prs.outputs.pr_count }}
+          
+          ## Open Issues
+          
+          EOF
+          
+          jq -r '.[] | "- [#\(.number)](\(.url)) - \(.title) (Created: \(.createdAt[:10]))"' /tmp/upstream-issues.json >> /tmp/upstream-report.md
+          
+          cat >> /tmp/upstream-report.md << 'EOF'
+          
+          ## Open Pull Requests
+          
+          EOF
+          
+          jq -r '.[] | "- [#\(.number)](\(.url)) - \(.title) (Created: \(.createdAt[:10]))"' /tmp/upstream-prs.json >> /tmp/upstream-report.md
+          
+          cat >> /tmp/upstream-report.md << 'EOF'
+          
+          ---
+          
+          ## Action Items
+          
+          - [ ] Review new issues and update `docs/ISSUES_TRACKING.md`
+          - [ ] Review new PRs and update `docs/PR_ANALYSIS.md`
+          - [ ] Update `UPSTREAM_TRACKING.md` with latest status
+          - [ ] Consider merging safe PRs (#29, #24)
+          - [ ] Prioritize critical issues (#33, #20, #27)
+          
+          ## Documentation
+          
+          For detailed analysis, see:
+          - [UPSTREAM_TRACKING.md](../UPSTREAM_TRACKING.md)
+          - [docs/PR_ANALYSIS.md](../docs/PR_ANALYSIS.md)
+          - [docs/ISSUES_TRACKING.md](../docs/ISSUES_TRACKING.md)
+          
+          EOF
+          
+          cat /tmp/upstream-report.md
+          echo "Report generated successfully"
+          
+      - name: Create/Update tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Check if there's an existing upstream tracking issue
+          EXISTING_ISSUE=$(gh issue list \
+            --label "upstream-tracking" \
+            --state open \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number' || echo "")
+          
+          REPORT=$(cat /tmp/upstream-report.md)
+          
+          if [ -n "$EXISTING_ISSUE" ]; then
+            echo "Updating existing tracking issue #$EXISTING_ISSUE"
+            gh issue comment "$EXISTING_ISSUE" --body "$REPORT"
+          else
+            echo "Creating new tracking issue"
+            gh issue create \
+              --title "Upstream Tracking Report - $(date -u +"%Y-%m-%d")" \
+              --body "$REPORT" \
+              --label "upstream-tracking,documentation"
+          fi
+          
+      - name: Summary
+        run: |
+          echo "### Upstream Check Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Issues**: ${{ steps.check-issues.outputs.issue_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PRs**: ${{ steps.check-prs.outputs.pr_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "A tracking issue has been created/updated with the full report." >> $GITHUB_STEP_SUMMARY
+
