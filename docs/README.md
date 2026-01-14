@@ -116,7 +116,7 @@ When updating these documents:
 ## Related Files
 
 - `../README.md` - Main project README
-- `../CHANGELOG.md` - Change history (to be created)
+- `../CHANGELOG.md` - Change history
 - `../multipart_parser.c` - Main parser implementation
 - `../multipart_parser.h` - Public API
 

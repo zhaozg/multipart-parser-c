@@ -2,7 +2,7 @@
 # Upstream Tracking Helper Script
 # This script helps check for new issues and PRs from upstream
 
-set -e
+set -euo pipefail
 
 UPSTREAM_OWNER="iafonov"
 UPSTREAM_REPO="multipart-parser-c"

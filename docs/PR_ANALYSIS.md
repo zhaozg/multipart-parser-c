@@ -269,7 +269,7 @@ Content-Type: Text/x-Okie; charset=iso-8859-1;
 When merging multiple PRs:
 - Merge simplest first (#29, #24)
 - Test individually
-- Merge complex ones separately with testing between
+- Merge complex ones separately with testing in between
 - Document all changes in CHANGELOG.md
 - Tag version after significant merges
 

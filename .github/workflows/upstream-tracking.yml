@@ -60,6 +60,7 @@ jobs:
         id: generate-report
         run: |
           REPORT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          JQ_FORMAT='.[] | "- [#\(.number)](\(.url)) - \(.title) (Created: \(.createdAt[:10]))"'
           
           cat > /tmp/upstream-report.md << EOF
           # Upstream Tracking Report
@@ -76,7 +77,7 @@ jobs:
           
           EOF
           
-          jq -r '.[] | "- [#\(.number)](\(.url)) - \(.title) (Created: \(.createdAt[:10]))"' /tmp/upstream-issues.json >> /tmp/upstream-report.md
+          jq -r "$JQ_FORMAT" /tmp/upstream-issues.json >> /tmp/upstream-report.md
           
           cat >> /tmp/upstream-report.md << 'EOF'
           
@@ -84,7 +85,7 @@ jobs:
           
           EOF
           
-          jq -r '.[] | "- [#\(.number)](\(.url)) - \(.title) (Created: \(.createdAt[:10]))"' /tmp/upstream-prs.json >> /tmp/upstream-report.md
+          jq -r "$JQ_FORMAT" /tmp/upstream-prs.json >> /tmp/upstream-report.md
           
           cat >> /tmp/upstream-report.md << 'EOF'
           
