@@ -18,6 +18,7 @@ static void multipart_log(const char * format, ...)
     fprintf(stderr, "[HTTP_MULTIPART_PARSER] %s:%d: ", __FILE__, __LINE__);
     vfprintf(stderr, format, args);
     fprintf(stderr, "\n");
+    va_end(args);
 #endif
 }
 
@@ -83,6 +84,10 @@ multipart_parser* multipart_parser_init
   multipart_parser* p = malloc(sizeof(multipart_parser) +
                                strlen(boundary) +
                                strlen(boundary) + 9);
+
+  if (p == NULL) {
+    return NULL;
+  }
 
   strcpy(p->multipart_boundary, boundary);
   p->boundary_length = strlen(boundary);
