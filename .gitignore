@@ -1,1 +1,14 @@
 *.o
+*.so
+*.a
+test_*
+!test_*.c
+*.dSYM/
+*.out
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+core
+vgcore.*
