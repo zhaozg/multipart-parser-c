@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comprehensive test suite (`test_basic.c`) with 7 tests covering:
+  - Parser initialization and cleanup
+  - Malloc failure handling
+  - Basic multipart data parsing
+  - Chunked parsing (1 byte at a time)
+  - Large boundary strings
+  - Invalid boundary detection
+  - User data get/set functionality
+- `SECURITY_IMPROVEMENTS.md`: Comprehensive security and correctness analysis
+- Expanded `.gitignore` for better build artifact management
 - Upstream tracking documentation system
   - `UPSTREAM_TRACKING.md`: Main tracking document for issues and PRs
   - `docs/PR_ANALYSIS.md`: Detailed PR analysis and recommendations
@@ -17,9 +27,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Established systematic process for reviewing upstream changes
 
+### Fixed
+- **PR #29** (upstream): Added NULL check after malloc in `multipart_parser_init()`
+  - Prevents undefined behavior on allocation failure
+  - Returns NULL to caller for proper error handling
+- **PR #24** (upstream): Added missing `va_end()` in `multipart_log()`
+  - Required by C standard for proper cleanup
+  - Prevents potential resource leaks in debug builds
+
+### Security
+- ✅ Passed CodeQL security scan with 0 vulnerabilities
+- Enhanced memory safety with malloc result checking
+- Proper resource management with va_end fix
+- All buffer operations are bounds-checked
+- No memory leaks detected
+
+### Documented
+- Known RFC 2046 boundary format limitations (Issue #20/#28)
+- Binary data handling limitations (Issue #33)
+- Safe usage patterns and recommendations
+- Complete security analysis
+
 ### Planned
-- Merge PR #29: Add malloc result checking (upstream)
-- Merge PR #24: Fix missing va_end (upstream)
 - Review PR #28: RFC-compliant boundary processing (upstream)
 - Fix Issue #33: Binary data handling in multipart packets (upstream)
 - Fix Issue #27: Filenames with spaces support (upstream)
