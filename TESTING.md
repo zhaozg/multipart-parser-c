@@ -2,14 +2,20 @@
 
 ## Running Tests
 
-### Basic Test Suite
+### Complete Test Suite
 
-Run all basic functionality tests:
+Run all tests (basic + binary edge cases):
 ```bash
 make test
 ```
 
-This runs `test_basic.c` which includes:
+This runs:
+1. **test_basic.c** - Basic functionality tests (7 tests)
+2. **test_binary.c** - Binary data edge case tests (6 tests)
+
+### Basic Test Suite
+
+The basic test suite (`test_basic.c`) includes:
 - Parser initialization and cleanup
 - Malloc failure handling verification
 - Basic multipart data parsing
@@ -36,6 +42,80 @@ Passed: 7
 Failed: 0
 ```
 
+### Binary Data Edge Case Tests
+
+The binary test suite (`test_binary.c`) includes:
+- Binary data with embedded CR characters (documents Issue #33)
+- Binary data with NULL bytes
+- Binary data containing boundary-like sequences
+- Binary data with high bytes (0x80-0xFF)
+- All-zero binary data
+- Binary data with multiple CRLF sequences
+
+Expected output:
+```
+=== Binary Data Edge Case Tests ===
+
+Test 1: Binary data with embedded CR (Issue #33) ... KNOWN ISSUE (Issue #33)
+Test 2: Binary data with NULL bytes ... PASSED
+Test 3: Binary data containing boundary-like sequences ... PASSED
+Test 4: Binary data with high bytes (0x80-0xFF) ... PASSED
+Test 5: Binary data with all zero bytes ... PASSED
+Test 6: Binary data with multiple CRLF sequences ... PASSED
+
+=== Test Summary ===
+Total: 6
+Passed: 6
+Failed: 0
+```
+
+Note: Test 1 documents Issue #33 (known limitation with CR in binary data).
+
+### Performance Benchmarks
+
+Run performance benchmarks:
+```bash
+make benchmark
+```
+
+This runs `test_performance.c` which measures:
+1. **Small message throughput** - Processing many small messages
+2. **Large message parsing** - Single large message (100KB)
+3. **Chunked parsing efficiency** - Various chunk sizes (1-256 bytes)
+4. **Multiple parts performance** - Messages with 1-50 parts
+
+Sample output:
+```
+=== Multipart Parser Performance Benchmarks ===
+
+=== Benchmark 1: Small Messages ===
+Iterations: 10000
+Time: 0.002 seconds
+Messages/sec: 5252101
+Throughput: 230.40 MB/s
+
+=== Benchmark 2: Large Message (100KB content) ===
+Message size: 102441 bytes
+Parse time: 0.000254 seconds
+Throughput: 384.63 MB/s
+
+=== Benchmark 3: Chunked Parsing Efficiency ===
+Chunk size:    1 bytes - Time: 0.003 sec - Rate: 1587806 parses/sec
+Chunk size:    4 bytes - Time: 0.002 sec - Rate: 2844141 parses/sec
+Chunk size:   16 bytes - Time: 0.001 sec - Rate: 3467406 parses/sec
+Chunk size:   64 bytes - Time: 0.001 sec - Rate: 3657644 parses/sec
+Chunk size:  256 bytes - Time: 0.001 sec - Rate: 3813883 parses/sec
+
+=== Benchmark 4: Multiple Parts Performance ===
+Parts:  1 - Size:    57 bytes - Time: 0.000 sec - Rate: 4424779 parses/sec
+Parts:  5 - Size:   301 bytes - Time: 0.001 sec - Rate: 919963 parses/sec
+Parts: 10 - Size:   606 bytes - Time: 0.002 sec - Rate: 460829 parses/sec
+Parts: 20 - Size:  1216 bytes - Time: 0.004 sec - Rate: 234192 parses/sec
+Parts: 50 - Size:  3046 bytes - Time: 0.011 sec - Rate: 94171 parses/sec
+```
+
+**Note**: Results vary based on system performance and load. These provide a baseline for comparison.
+
 ### Building the Library
 
 Build the object file:
@@ -59,7 +139,10 @@ make clean
 ### Positive Tests
 - ✅ Valid multipart data parsing
 - ✅ Multiple callback invocations
-- ✅ Chunked input processing
+- ✅ Chunked input processing (1 byte, variable sizes)
+- ✅ Binary data with NULL bytes
+- ✅ Binary data with high bytes (0x80-0xFF)
+- ✅ All-zero binary data
 
 ### Negative Tests
 - ✅ Invalid boundary detection
@@ -68,6 +151,29 @@ make clean
 ### Boundary Tests
 - ✅ Large boundary strings (255 characters)
 - ✅ Small boundary strings
+- ✅ Boundary-like sequences in data
+
+### Binary Data Edge Cases
+- ✅ NULL bytes in binary data
+- ✅ High bytes (0x80-0xFF)
+- ✅ All-zero data
+- ✅ Multiple CRLF sequences
+- ⚠️ CR in binary data (Issue #33 - documented limitation)
+
+### Security Tests
+- ✅ NULL pointer handling
+- ✅ Memory allocation failure paths
+- ✅ Buffer boundary conditions
+
+### Integration Tests
+- ✅ User data context management
+- ✅ Callback sequencing
+
+### Performance Tests
+- ✅ Small message throughput baseline
+- ✅ Large message parsing baseline
+- ✅ Chunked parsing efficiency (1-256 byte chunks)
+- ✅ Multiple parts scalability (1-50 parts)
 
 ### Security Tests
 - ✅ NULL pointer handling
