@@ -90,6 +90,36 @@ private:
 };
 ```
 
+### Upstream Tracking
+
+This is a fork of [iafonov/multipart-parser-c](https://github.com/iafonov/multipart-parser-c).
+
+We maintain systematic tracking of upstream issues and pull requests:
+
+- **[UPSTREAM_TRACKING.md](UPSTREAM_TRACKING.md)** - Main tracking document with recommendations
+- **[docs/PR_ANALYSIS.md](docs/PR_ANALYSIS.md)** - Detailed analysis of upstream PRs
+- **[docs/ISSUES_TRACKING.md](docs/ISSUES_TRACKING.md)** - Comprehensive issue tracking
+
+#### Quick Status
+
+**Ready to Merge** (Safe improvements):
+- PR #29: Check malloc result ✅
+- PR #24: Fix missing va_end ✅
+
+**Under Review** (Need testing):
+- PR #28: RFC-compliant boundary processing ⚠️
+- Issue #33: Binary data handling in multipart packets 🔴
+
+See [UPSTREAM_TRACKING.md](UPSTREAM_TRACKING.md) for full analysis.
+
+#### Automated Tracking
+
+We provide automated upstream tracking:
+- **Script**: `scripts/check-upstream.sh` - Manual check for new issues/PRs
+- **GitHub Action**: `.github/workflows/upstream-tracking.yml` - Weekly automated checks
+
+---
+
 ### Contributors
 * [Daniel T. Wagner](http://www.danieltwagner.de/)
 * [James McLaughlin](http://udp.github.com/)
