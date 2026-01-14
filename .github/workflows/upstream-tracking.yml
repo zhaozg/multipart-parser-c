@@ -59,10 +59,12 @@ jobs:
       - name: Generate report
         id: generate-report
         run: |
-          cat > /tmp/upstream-report.md << 'EOF'
+          REPORT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          cat > /tmp/upstream-report.md << EOF
           # Upstream Tracking Report
           
-          **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Date**: ${REPORT_DATE}
           **Upstream**: [iafonov/multipart-parser-c](https://github.com/iafonov/multipart-parser-c)
           
           ## Summary
@@ -121,6 +123,7 @@ jobs:
             --jq '.[0].number' || echo "")
           
           REPORT=$(cat /tmp/upstream-report.md)
+          ISSUE_DATE=$(date -u +"%Y-%m-%d")
           
           if [ -n "$EXISTING_ISSUE" ]; then
             echo "Updating existing tracking issue #$EXISTING_ISSUE"
@@ -128,7 +131,7 @@ jobs:
           else
             echo "Creating new tracking issue"
             gh issue create \
-              --title "Upstream Tracking Report - $(date -u +"%Y-%m-%d")" \
+              --title "Upstream Tracking Report - ${ISSUE_DATE}" \
               --body "$REPORT" \
               --label "upstream-tracking,documentation"
           fi
@@ -141,4 +144,3 @@ jobs:
           echo "- **PRs**: ${{ steps.check-prs.outputs.pr_count }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "A tracking issue has been created/updated with the full report." >> $GITHUB_STEP_SUMMARY
-
