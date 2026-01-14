@@ -62,6 +62,7 @@ enum state {
   s_uninitialized = 1,
   s_start,
   s_start_boundary,
+  s_start_boundary_hyphen2,
   s_header_field_start,
   s_header_field,
   s_headers_almost_done,
@@ -72,6 +73,7 @@ enum state {
   s_part_data,
   s_part_data_almost_boundary,
   s_part_data_boundary,
+  s_part_data_boundary_hyphen2,
   s_part_data_almost_end,
   s_part_data_end,
   s_part_data_final_hyphen,
@@ -131,13 +133,44 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
       /* fallthrough */
       case s_start_boundary:
         multipart_log("s_start_boundary");
-        if (p->index == p->boundary_length) {
-          if (c != CR) {
-            return i;
+        /* RFC 2046: Skip preamble and find first boundary starting with -- */
+        if (p->index == 0) {
+          if (c != '-') {
+            /* Skip preamble - keep looking for '-' */
+            break;
           }
           p->index++;
           break;
-        } else if (p->index == (p->boundary_length + 1)) {
+        } else if (p->index == 1) {
+          if (c != '-') {
+            /* Not a boundary, reset and continue looking */
+            p->index = 0;
+            if (c == '-') {
+              p->index = 1;
+            }
+            break;
+          }
+          p->index++;
+          p->state = s_start_boundary_hyphen2;
+          break;
+        }
+        return i;  /* Should not reach here */
+
+      case s_start_boundary_hyphen2:
+        multipart_log("s_start_boundary_hyphen2");
+        if ((p->index - 2) == p->boundary_length) {
+          if (c != CR) {
+            /* Not the right boundary, go back to looking for start */
+            p->index = 0;
+            p->state = s_start_boundary;
+            if (c == '-') {
+              p->index = 1;
+            }
+            break;
+          }
+          p->index++;
+          break;
+        } else if ((p->index - 2) == (p->boundary_length + 1)) {
           if (c != LF) {
             return i;
           }
@@ -146,8 +179,14 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
           p->state = s_header_field_start;
           break;
         }
-        if (c != p->multipart_boundary[p->index]) {
-          return i;
+        if (c != p->multipart_boundary[p->index - 2]) {
+          /* Boundary mismatch, go back to looking for start */
+          p->index = 0;
+          p->state = s_start_boundary;
+          if (c == '-') {
+            p->index = 1;
+          }
+          break;
         }
         p->index++;
         break;
@@ -253,14 +292,42 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
 
       case s_part_data_boundary:
         multipart_log("s_part_data_boundary");
-        if (p->multipart_boundary[p->index] != c) {
+        /* RFC 2046: boundary must start with -- after CRLF */
+        if (p->index == 0) {
+          if (c != '-') {
+            EMIT_DATA_CB(part_data, p->lookbehind, 2);
+            p->state = s_part_data;
+            mark = i --;
+            break;
+          }
+          p->lookbehind[2] = c;
+          p->index++;
+          break;
+        } else if (p->index == 1) {
+          if (c != '-') {
+            EMIT_DATA_CB(part_data, p->lookbehind, 3);
+            p->state = s_part_data;
+            mark = i --;
+            break;
+          }
+          p->lookbehind[3] = c;
+          p->index++;
+          p->state = s_part_data_boundary_hyphen2;
+          break;
+        }
+        /* Should not reach here */
+        return i;
+
+      case s_part_data_boundary_hyphen2:
+        multipart_log("s_part_data_boundary_hyphen2");
+        if (p->multipart_boundary[p->index - 2] != c) {
           EMIT_DATA_CB(part_data, p->lookbehind, 2 + p->index);
           p->state = s_part_data;
           mark = i --;
           break;
         }
         p->lookbehind[2 + p->index] = c;
-        if ((++ p->index) == p->boundary_length) {
+        if ((++ p->index) == (p->boundary_length + 2)) {
             NOTIFY_CB(part_data_end);
             p->state = s_part_data_almost_end;
         }

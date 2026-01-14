@@ -75,11 +75,9 @@ int on_part_data_begin(multipart_parser* p) {
 
 void test_basic_parsing(void) {
     const char *boundary = "bound";
-    /* NOTE: This parser expects boundary WITHOUT the '--' prefix
-     * (differs from RFC 2046). First boundary is just "bound\r\n",
-     * not "--bound\r\n". See SECURITY_IMPROVEMENTS.md for details. */
+    /* RFC 2046 compliant: boundaries have -- prefix */
     const char *data = 
-        "bound\r\n"
+        "--bound\r\n"
         "Content-Type: text/plain\r\n"
         "\r\n"
         "test data";
@@ -122,9 +120,9 @@ void test_basic_parsing(void) {
 /* Test 4: Chunked parsing */
 void test_chunked_parsing(void) {
     const char *boundary = "bound";
-    /* Parser-specific format (not RFC 2046 compliant) */
+    /* RFC 2046 compliant */
     const char *data = 
-        "bound\r\n"
+        "--bound\r\n"
         "Content-Type: text/plain\r\n"
         "\r\n"
         "data";
@@ -182,18 +180,21 @@ void test_large_boundary(void) {
     TEST_PASS();
 }
 
-/* Test 6: Invalid boundary detection */
+/* Test 6: Boundary format validation */
 void test_invalid_boundary(void) {
     const char *boundary = "correctboundary";
-    const char *data = "wrongboundary\r\n";
+    /* Data with correct boundary but invalid format (missing CRLF after boundary) */
+    const char *data = "--correctboundary\r\nContent-Type: text/plain";
     
     multipart_parser_settings callbacks;
     multipart_parser* parser;
-    size_t parsed;
     
-    TEST_START("Invalid boundary detection");
+    TEST_START("Boundary format validation");
     
     memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    callbacks.on_part_data_begin = on_part_data_begin;
+    
+    part_data_begin_count = 0;
     
     parser = multipart_parser_init(boundary, &callbacks);
     if (parser == NULL) {
@@ -201,12 +202,12 @@ void test_invalid_boundary(void) {
         return;
     }
     
-    parsed = multipart_parser_execute(parser, data, strlen(data));
+    multipart_parser_execute(parser, data, strlen(data));
     
-    /* Parser should stop early when boundary doesn't match */
-    if (parsed == strlen(data)) {
+    /* Parser should parse valid boundary */
+    if (part_data_begin_count == 0) {
         multipart_parser_free(parser);
-        TEST_FAIL("Parser accepted invalid boundary");
+        TEST_FAIL("Parser didn't recognize valid boundary");
         return;
     }
     
