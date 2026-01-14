@@ -75,6 +75,9 @@ int on_part_data_begin(multipart_parser* p) {
 
 void test_basic_parsing(void) {
     const char *boundary = "bound";
+    /* NOTE: This parser expects boundary WITHOUT the '--' prefix
+     * (differs from RFC 2046). First boundary is just "bound\r\n",
+     * not "--bound\r\n". See SECURITY_IMPROVEMENTS.md for details. */
     const char *data = 
         "bound\r\n"
         "Content-Type: text/plain\r\n"
@@ -119,6 +122,7 @@ void test_basic_parsing(void) {
 /* Test 4: Chunked parsing */
 void test_chunked_parsing(void) {
     const char *boundary = "bound";
+    /* Parser-specific format (not RFC 2046 compliant) */
     const char *data = 
         "bound\r\n"
         "Content-Type: text/plain\r\n"
