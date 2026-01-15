@@ -85,8 +85,7 @@ enum state {
   s_header_field_start,
   s_header_field,
   s_headers_almost_done,
-  s_header_value_start,
-  s_header_value,
+  s_header_value,              /* Optimized: removed s_header_value_start state */
   s_header_value_almost_done,
   s_part_data_start,
   s_part_data,
@@ -333,7 +332,9 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
 
         if (c == ':') {
           EMIT_DATA_CB(header_field, buf + mark, i - mark);
-          p->state = s_header_value_start;
+          /* Optimization: Skip intermediate s_header_value_start state */
+          mark = i + 1;  /* Mark start after colon */
+          p->state = s_header_value;
           break;
         }
 
@@ -357,18 +358,16 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
         p->state = s_part_data_start;
         break;
 
-      case s_header_value_start:
-        multipart_log("s_header_value_start");
-        if (c == ' ') {
-          break;
-        }
-
-        mark = i;
-        p->state = s_header_value;
-
-      /* fallthrough */
       case s_header_value:
         multipart_log("s_header_value");
+        /* Optimization: Handle leading space inline (was s_header_value_start) */
+        while (mark < len && buf[mark] == ' ') {
+          mark++;  /* Skip leading spaces */
+        }
+        if (mark > i) {
+          /* All consumed were spaces, continue to next iteration */
+          break;
+        }
         if (c == CR) {
           EMIT_DATA_CB(header_value, buf + mark, i - mark);
           p->state = s_header_value_almost_done;
