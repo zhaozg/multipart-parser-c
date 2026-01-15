@@ -1,0 +1,22 @@
+# Valgrind suppressions file for multipart-parser-c
+# This file suppresses known false positives from system libraries
+
+{
+   glibc_printf_conditional
+   Memcheck:Cond
+   fun:__printf_fp_l
+   fun:__vfprintf_internal
+   fun:printf
+}
+
+{
+   glibc_strlen_conditional
+   Memcheck:Cond
+   fun:__strlen_sse2
+}
+
+{
+   glibc_memcpy_conditional
+   Memcheck:Cond
+   fun:memcpy*
+}
