@@ -1003,6 +1003,136 @@ void test_issue13_header_value_cr(void) {
 }
 
 /* ========================================================================
+ * SECTION 5: Error Handling Tests
+ * ======================================================================== */
+
+/* Test 19: Invalid header field character */
+void test_error_invalid_header_field(void) {
+    const char *boundary = "bound";
+    /* Invalid character '@' in header name */
+    const char *data = 
+        "--bound\r\n"
+        "Content@Type: text/plain\r\n"
+        "\r\n"
+        "test";
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    
+    TEST_START("Error: Invalid header field character");
+    
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    parser = multipart_parser_init(boundary, &callbacks);
+    
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed == strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Should have detected invalid header character");
+        return;
+    }
+    
+    if (multipart_parser_get_error(parser) != MPPE_INVALID_HEADER_FIELD) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Wrong error code");
+        return;
+    }
+    
+    /* Check error message is not NULL */
+    if (multipart_parser_get_error_message(parser) == NULL) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Error message is NULL");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
+/* Test 20: Invalid boundary format */
+void test_error_invalid_boundary(void) {
+    const char *boundary = "bound";
+    /* Missing second dash in final boundary */
+    const char *data = 
+        "--bound\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "test\r\n"
+        "--bound-X";  /* Invalid: should be '--' */
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    
+    TEST_START("Error: Invalid boundary format");
+    
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    parser = multipart_parser_init(boundary, &callbacks);
+    
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed == strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Should have detected invalid boundary");
+        return;
+    }
+    
+    if (multipart_parser_get_error(parser) != MPPE_INVALID_BOUNDARY) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Wrong error code");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
+/* Test 21: Callback pause */
+int pause_callback(multipart_parser* p) {
+    (void)p;
+    return 1;  /* Pause parsing */
+}
+
+void test_error_callback_pause(void) {
+    const char *boundary = "bound";
+    const char *data = 
+        "--bound\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "test";
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    
+    TEST_START("Error: Callback pause");
+    
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    callbacks.on_part_data_begin = pause_callback;
+    
+    parser = multipart_parser_init(boundary, &callbacks);
+    
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    /* Should pause before completing */
+    if (parsed == strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Should have paused");
+        return;
+    }
+    
+    if (multipart_parser_get_error(parser) != MPPE_PAUSED) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Wrong error code, expected MPPE_PAUSED");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
+/* ========================================================================
  * MAIN - Run all test sections
  * ======================================================================== */
 
@@ -1041,6 +1171,13 @@ int main(void) {
     /* Section 4: Issue #13 Regression Test */
     printf("--- Section 4: Issue Regression Tests ---\n");
     test_issue13_header_value_cr();
+    printf("\n");
+    
+    /* Section 5: Error Handling Tests */
+    printf("--- Section 5: Error Handling Tests ---\n");
+    test_error_invalid_header_field();
+    test_error_invalid_boundary();
+    test_error_callback_pause();
     printf("\n");
     
     /* Summary */
