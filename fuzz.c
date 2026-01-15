@@ -83,14 +83,10 @@ int main(void) {
 
     /* Extract boundary from first part of input (up to 70 bytes max) */
     size_t boundary_len = size > 70 ? 70 : size;
-    if (boundary_len > 0 && data[0] == 0) {
-        boundary_len = 1; /* Minimal boundary */
-    }
     
     /* Ensure boundary is reasonable length (1-70 bytes) */
     if (boundary_len < 1) boundary_len = 1;
     if (boundary_len > size / 2) boundary_len = size / 2;
-    if (boundary_len > 70) boundary_len = 70;
     
     char boundary[71];
     memcpy(boundary, data, boundary_len);

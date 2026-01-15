@@ -32,7 +32,6 @@ benchmark: benchmark_bin
 clean:
 	rm -f *.o *.so test benchmark fuzz-afl fuzz-libfuzzer
 	rm -f *.gcov *.gcda *.gcno coverage.info coverage.txt coverage.xml
-	rm -f *.gcno coverage.info coverage.txt coverage.xml
 	rm -rf coverage-html
 	rm -f callgrind.out* cachegrind.out* massif.out*
 	rm -f valgrind-*.log
