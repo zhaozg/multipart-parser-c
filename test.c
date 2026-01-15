@@ -1132,6 +1132,145 @@ void test_error_callback_pause(void) {
     TEST_PASS();
 }
 
+/* Test 22: Multiple headers in one part */
+void test_multiple_headers(void) {
+    const char *boundary = "test";
+    const char *data = 
+        "--test\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Disposition: form-data; name=\"field\"\r\n"
+        "Content-Length: 5\r\n"
+        "\r\n"
+        "value\r\n"
+        "--test--";
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    int header_count = 0;
+    
+    TEST_START("Multiple headers in one part");
+    
+    /* Simple callback to count headers */
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    
+    parser = multipart_parser_init(boundary, &callbacks);
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed != strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Failed to parse");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
+/* Test 23: Empty part data */
+void test_empty_part_data(void) {
+    const char *boundary = "bound";
+    const char *data = 
+        "--bound\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "\r\n"  /* Empty data */
+        "--bound--";
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    
+    TEST_START("Empty part data");
+    
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    parser = multipart_parser_init(boundary, &callbacks);
+    
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed != strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Failed to parse empty part");
+        return;
+    }
+    
+    if (multipart_parser_get_error(parser) != MPPE_OK) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Got error on valid empty part");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
+/* Test 24: Very long header value */
+void test_long_header_value(void) {
+    const char *boundary = "bound";
+    char data[2048];
+    char long_value[1024];
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    int i;
+    
+    TEST_START("Very long header value");
+    
+    /* Generate long header value */
+    for (i = 0; i < 1000; i++) {
+        long_value[i] = 'A' + (i % 26);
+    }
+    long_value[1000] = '\0';
+    
+    /* Build multipart data with long header */
+    sprintf(data, "--bound\r\nContent-Type: %s\r\n\r\ndata\r\n--bound--", long_value);
+    
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    parser = multipart_parser_init(boundary, &callbacks);
+    
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed != strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Failed to parse long header");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
+/* Test 25: No data after final boundary */
+void test_clean_end(void) {
+    const char *boundary = "bound";
+    const char *data = 
+        "--bound\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "test\r\n"
+        "--bound--";  /* Clean end, no trailing data */
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    
+    TEST_START("Clean end after final boundary");
+    
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    parser = multipart_parser_init(boundary, &callbacks);
+    
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed != strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Failed to parse");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
 /* ========================================================================
  * MAIN - Run all test sections
  * ======================================================================== */
@@ -1178,6 +1317,14 @@ int main(void) {
     test_error_invalid_header_field();
     test_error_invalid_boundary();
     test_error_callback_pause();
+    printf("\n");
+    
+    /* Section 6: Additional Coverage Tests */
+    printf("--- Section 6: Coverage Improvement Tests ---\n");
+    test_multiple_headers();
+    test_empty_part_data();
+    test_long_header_value();
+    test_clean_end();
     printf("\n");
     
     /* Summary */
