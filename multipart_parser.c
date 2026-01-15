@@ -26,6 +26,7 @@ static void multipart_log(const char * format, ...)
 do {                                                                   \
   if (p->settings->on_##FOR) {                                         \
     if (p->settings->on_##FOR(p) != 0) {                               \
+      p->error = MPPE_PAUSED;                                          \
       return i;                                                        \
     }                                                                  \
   }                                                                    \
@@ -35,6 +36,7 @@ do {                                                                   \
 do {                                                                   \
   if (p->settings->on_##FOR) {                                         \
     if (p->settings->on_##FOR(p, ptr, len) != 0) {                     \
+      p->error = MPPE_PAUSED;                                          \
       return i;                                                        \
     }                                                                  \
   }                                                                    \
@@ -51,6 +53,7 @@ struct multipart_parser {
   size_t boundary_length;
 
   unsigned char state;
+  multipart_parser_error error;  /* Last error code */
 
   const multipart_parser_settings* settings;
 
@@ -99,6 +102,7 @@ multipart_parser* multipart_parser_init
   p->index = 0;
   p->state = s_start;
   p->settings = settings;
+  p->error = MPPE_OK;  /* Initialize error state */
 
   return p;
 }
@@ -115,11 +119,38 @@ void *multipart_parser_get_data(multipart_parser *p) {
     return p->data;
 }
 
+multipart_parser_error multipart_parser_get_error(multipart_parser* p) {
+    return p->error;
+}
+
+const char* multipart_parser_get_error_message(multipart_parser* p) {
+    switch (p->error) {
+        case MPPE_OK:
+            return "No error";
+        case MPPE_PAUSED:
+            return "Parsing paused by callback";
+        case MPPE_INVALID_BOUNDARY:
+            return "Invalid boundary format";
+        case MPPE_INVALID_HEADER_FIELD:
+            return "Invalid character in header field name";
+        case MPPE_INVALID_HEADER_FORMAT:
+            return "Invalid header format";
+        case MPPE_INVALID_STATE:
+            return "Parser in invalid state";
+        case MPPE_UNKNOWN:
+        default:
+            return "Unknown error";
+    }
+}
+
 size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len) {
   size_t i = 0;
   size_t mark = 0;
   char c, cl;
   int is_last = 0;
+
+  /* Reset error state at start of parsing */
+  p->error = MPPE_OK;
 
   while(i < len) {
     c = buf[i];
@@ -154,7 +185,9 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
           p->state = s_start_boundary_hyphen2;
           break;
         }
-        return i;  /* Should not reach here */
+        /* Should not reach here */
+        p->error = MPPE_INVALID_STATE;
+        return i;
 
       case s_start_boundary_hyphen2:
         multipart_log("s_start_boundary_hyphen2");
@@ -213,6 +246,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
         cl = tolower(c);
         if ((c != '-') && (cl < 'a' || cl > 'z')) {
           multipart_log("invalid character in header name");
+          p->error = MPPE_INVALID_HEADER_FIELD;
           return i;
         }
         if (is_last)
@@ -222,6 +256,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
       case s_headers_almost_done:
         multipart_log("s_headers_almost_done");
         if (c != LF) {
+          p->error = MPPE_INVALID_HEADER_FORMAT;
           return i;
         }
 
@@ -252,6 +287,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
       case s_header_value_almost_done:
         multipart_log("s_header_value_almost_done");
         if (c != LF) {
+          p->error = MPPE_INVALID_HEADER_FORMAT;
           return i;
         }
         p->state = s_header_field_start;
@@ -340,6 +376,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
           break;
         }
         /* Should not reach here */
+        p->error = MPPE_INVALID_STATE;
         return i;
 
       case s_part_data_boundary_hyphen2:
@@ -367,6 +404,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
             p->state = s_part_data_end;
             break;
         }
+        p->error = MPPE_INVALID_BOUNDARY;
         return i;
    
       case s_part_data_final_hyphen:
@@ -376,6 +414,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
             p->state = s_end;
             break;
         }
+        p->error = MPPE_INVALID_BOUNDARY;
         return i;
 
       case s_part_data_end:
@@ -385,6 +424,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
             NOTIFY_CB(part_data_begin);
             break;
         }
+        p->error = MPPE_INVALID_BOUNDARY;
         return i;
 
       case s_end:
@@ -393,6 +433,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
 
       default:
         multipart_log("Multipart parser unrecoverable error");
+        p->error = MPPE_INVALID_STATE;
         return 0;
     }
     ++ i;
