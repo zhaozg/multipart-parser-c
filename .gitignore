@@ -3,6 +3,7 @@
 *.a
 test
 benchmark
+benchmark_comparison
 fuzz-afl
 fuzz-libfuzzer
 *.dSYM/
