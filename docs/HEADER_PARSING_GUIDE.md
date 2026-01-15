@@ -88,13 +88,13 @@ int parse_content_disposition(const char* value, size_t length,
         }
         val[val_len] = '\0';
         
-        /* Store the parsed value */
+        /* Store the parsed value (with explicit null termination) */
         if (strcmp(key, "name") == 0) {
             strncpy(info->name, val, sizeof(info->name) - 1);
-            info->name[sizeof(info->name) - 1] = '\0';
+            info->name[sizeof(info->name) - 1] = '\0';  /* Ensure null termination */
         } else if (strcmp(key, "filename") == 0) {
             strncpy(info->filename, val, sizeof(info->filename) - 1);
-            info->filename[sizeof(info->filename) - 1] = '\0';
+            info->filename[sizeof(info->filename) - 1] = '\0';  /* Ensure null termination */
         }
         
         /* Skip to next parameter */
