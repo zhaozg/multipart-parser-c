@@ -1,0 +1,433 @@
+name: CI - Build, Test, and Analyze
+
+on:
+  push:
+    branches: [ main, master, copilot/** ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            make \
+            valgrind \
+            lcov \
+            gcovr
+      
+      - name: Build library
+        run: |
+          make clean
+          make
+      
+      - name: Build tests
+        run: |
+          make test_basic test_binary test_rfc test_issue13
+      
+      - name: Run tests
+        run: |
+          make test
+      
+      - name: Build performance tests
+        run: |
+          make test_performance
+      
+      - name: Run performance benchmarks
+        run: |
+          make benchmark
+
+  memory-sanitizer:
+    name: AddressSanitizer (Memory Safety)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make
+      
+      - name: Build with AddressSanitizer
+        run: |
+          make clean
+          CFLAGS="-std=c89 -ansi -pedantic -g -O1 -fsanitize=address -fno-omit-frame-pointer -Wall" \
+            make test_basic test_binary test_rfc test_issue13
+      
+      - name: Run tests with AddressSanitizer
+        env:
+          ASAN_OPTIONS: detect_leaks=1:check_initialization_order=1:strict_init_order=1
+        run: |
+          echo "Running basic tests with ASAN..."
+          ./test_basic
+          echo ""
+          echo "Running binary data tests with ASAN..."
+          ./test_binary
+          echo ""
+          echo "Running RFC tests with ASAN..."
+          ./test_rfc
+          echo ""
+          echo "Running Issue #13 test with ASAN..."
+          ./test_issue13
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "### AddressSanitizer Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All tests passed with AddressSanitizer enabled." >> $GITHUB_STEP_SUMMARY
+          echo "No memory leaks, buffer overflows, or use-after-free detected." >> $GITHUB_STEP_SUMMARY
+
+  undefined-behavior-sanitizer:
+    name: UndefinedBehaviorSanitizer
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make
+      
+      - name: Build with UBSan
+        run: |
+          make clean
+          CFLAGS="-std=c89 -ansi -pedantic -g -O1 -fsanitize=undefined -fno-omit-frame-pointer -Wall" \
+            make test_basic test_binary test_rfc test_issue13
+      
+      - name: Run tests with UBSan
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          echo "Running tests with UndefinedBehaviorSanitizer..."
+          ./test_basic && ./test_binary && ./test_rfc && ./test_issue13
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "### UndefinedBehaviorSanitizer Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No undefined behavior detected." >> $GITHUB_STEP_SUMMARY
+
+  valgrind-memcheck:
+    name: Valgrind Memory Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make valgrind
+      
+      - name: Build with debug symbols
+        run: |
+          make clean
+          CFLAGS="-std=c89 -ansi -pedantic -g -O0 -Wall" \
+            make test_basic test_binary test_rfc test_issue13
+      
+      - name: Run Valgrind memcheck on basic tests
+        run: |
+          valgrind --tool=memcheck \
+            --leak-check=full \
+            --show-leak-kinds=all \
+            --track-origins=yes \
+            --error-exitcode=1 \
+            --suppressions=.valgrind.suppressions \
+            ./test_basic 2>&1 | tee valgrind-basic.log
+        continue-on-error: true
+      
+      - name: Run Valgrind memcheck on binary tests
+        run: |
+          valgrind --tool=memcheck \
+            --leak-check=full \
+            --show-leak-kinds=all \
+            --track-origins=yes \
+            --error-exitcode=1 \
+            --suppressions=.valgrind.suppressions \
+            ./test_binary 2>&1 | tee valgrind-binary.log
+        continue-on-error: true
+      
+      - name: Run Valgrind memcheck on RFC tests
+        run: |
+          valgrind --tool=memcheck \
+            --leak-check=full \
+            --show-leak-kinds=all \
+            --track-origins=yes \
+            --error-exitcode=1 \
+            --suppressions=.valgrind.suppressions \
+            ./test_rfc 2>&1 | tee valgrind-rfc.log
+        continue-on-error: true
+      
+      - name: Run Valgrind memcheck on Issue #13 test
+        run: |
+          valgrind --tool=memcheck \
+            --leak-check=full \
+            --show-leak-kinds=all \
+            --track-origins=yes \
+            --error-exitcode=1 \
+            --suppressions=.valgrind.suppressions \
+            ./test_issue13 2>&1 | tee valgrind-issue13.log
+        continue-on-error: true
+      
+      - name: Check for Valgrind errors
+        run: |
+          echo "Checking Valgrind logs for errors..."
+          ERRORS=0
+          for log in valgrind-*.log; do
+            if grep -q "ERROR SUMMARY: [^0]" "$log"; then
+              echo "❌ Errors found in $log"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ No errors in $log"
+            fi
+          done
+          
+          if [ $ERRORS -gt 0 ]; then
+            echo "❌ $ERRORS test(s) had Valgrind errors"
+            exit 1
+          fi
+      
+      - name: Upload Valgrind logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: valgrind-logs
+          path: valgrind-*.log
+          retention-days: 30
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "### Valgrind Memcheck Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All tests passed Valgrind memory checks." >> $GITHUB_STEP_SUMMARY
+          echo "No memory leaks, invalid reads/writes detected." >> $GITHUB_STEP_SUMMARY
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make lcov gcovr
+      
+      - name: Build with coverage flags
+        run: |
+          make clean
+          CFLAGS="-std=c89 -ansi -pedantic -g -O0 --coverage -fprofile-arcs -ftest-coverage -Wall" \
+            make test_basic test_binary test_rfc test_issue13
+      
+      - name: Run tests
+        run: |
+          ./test_basic
+          ./test_binary
+          ./test_rfc
+          ./test_issue13
+      
+      - name: Generate coverage report with gcov
+        run: |
+          gcov multipart_parser.c
+      
+      - name: Generate coverage report with lcov
+        run: |
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --list coverage.info
+      
+      - name: Generate HTML coverage report
+        run: |
+          genhtml coverage.info --output-directory coverage-html
+      
+      - name: Generate coverage summary
+        run: |
+          gcovr --txt -o coverage.txt
+          gcovr --xml -o coverage.xml
+          cat coverage.txt
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage.info
+            coverage.txt
+            coverage.xml
+            coverage-html/
+            *.gcov
+          retention-days: 30
+      
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          COVERAGE=$(gcovr --txt | grep TOTAL | awk '{print $4}')
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "Coverage: $COVERAGE"
+      
+      - name: Summary
+        run: |
+          echo "### Code Coverage Results 📊" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Coverage**: ${{ steps.coverage.outputs.coverage }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Detailed coverage reports uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
+
+  performance-profiling:
+    name: Performance Profiling (Callgrind)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make valgrind kcachegrind-converters
+      
+      - name: Build with debug symbols
+        run: |
+          make clean
+          CFLAGS="-std=c89 -ansi -pedantic -g -O2 -Wall" \
+            make test_performance
+      
+      - name: Run Callgrind profiling
+        run: |
+          valgrind --tool=callgrind \
+            --callgrind-out-file=callgrind.out \
+            --dump-instr=yes \
+            --collect-jumps=yes \
+            ./test_performance 2>&1 | tee callgrind.log
+      
+      - name: Generate callgrind report
+        run: |
+          callgrind_annotate callgrind.out > callgrind-report.txt
+          echo "=== Top 30 Functions by Self Cost ===" | tee callgrind-summary.txt
+          callgrind_annotate callgrind.out --auto=yes --threshold=0.1 | head -50 | tee -a callgrind-summary.txt
+      
+      - name: Identify hotspots
+        run: |
+          echo "=== Performance Hotspots ===" | tee hotspots.txt
+          callgrind_annotate callgrind.out | grep -A 5 "multipart_parser" | tee -a hotspots.txt
+      
+      - name: Upload profiling data
+        uses: actions/upload-artifact@v4
+        with:
+          name: profiling-data
+          path: |
+            callgrind.out
+            callgrind.log
+            callgrind-report.txt
+            callgrind-summary.txt
+            hotspots.txt
+          retention-days: 30
+      
+      - name: Display hotspots summary
+        run: |
+          cat callgrind-summary.txt
+          echo ""
+          cat hotspots.txt
+      
+      - name: Summary
+        run: |
+          echo "### Performance Profiling Results 🔥" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Callgrind profiling completed. See artifacts for detailed analysis." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -20 hotspots.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  cache-profiling:
+    name: Cache Profiling (Cachegrind)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make valgrind
+      
+      - name: Build with optimization
+        run: |
+          make clean
+          CFLAGS="-std=c89 -ansi -pedantic -g -O2 -Wall" \
+            make test_performance
+      
+      - name: Run Cachegrind profiling
+        run: |
+          valgrind --tool=cachegrind \
+            --cachegrind-out-file=cachegrind.out \
+            ./test_performance 2>&1 | tee cachegrind.log
+      
+      - name: Generate cachegrind report
+        run: |
+          cg_annotate cachegrind.out > cachegrind-report.txt
+          cg_annotate cachegrind.out --auto=yes | head -100 > cachegrind-summary.txt
+      
+      - name: Upload cache profiling data
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-profiling-data
+          path: |
+            cachegrind.out
+            cachegrind.log
+            cachegrind-report.txt
+            cachegrind-summary.txt
+          retention-days: 30
+      
+      - name: Display cache summary
+        run: |
+          echo "=== Cache Performance Summary ==="
+          head -30 cachegrind-summary.txt
+      
+      - name: Summary
+        run: |
+          echo "### Cache Profiling Results 💾" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Cachegrind profiling completed. Cache statistics available in artifacts." >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [build-and-test, memory-sanitizer, undefined-behavior-sanitizer, valgrind-memcheck, code-coverage, performance-profiling, cache-profiling]
+    if: always()
+    
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "### CI Pipeline Summary 📋" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build and Test | ${{ needs.build-and-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AddressSanitizer | ${{ needs.memory-sanitizer.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| UndefinedBehaviorSanitizer | ${{ needs.undefined-behavior-sanitizer.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Valgrind Memcheck | ${{ needs.valgrind-memcheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Coverage | ${{ needs.code-coverage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Profiling | ${{ needs.performance-profiling.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cache Profiling | ${{ needs.cache-profiling.result }} |" >> $GITHUB_STEP_SUMMARY

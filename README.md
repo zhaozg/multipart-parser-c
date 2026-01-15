@@ -4,6 +4,10 @@
 * No dependencies
 * Works with chunks of a data - no need to buffer the whole request
 * Almost no internal buffering. Buffer size doesn't exceed the size of the boundary (~60-70 bytes)
+* **RFC 2046 compliant** - Properly handles boundary format and preamble
+* **Memory safe** - Verified with AddressSanitizer and Valgrind
+* **Well tested** - 18 functional tests + performance benchmarks
+* **CI/CD** - Automated testing, coverage, and profiling
 
 Tested as part of [Cosmonaut](https://github.com/iafonov/cosmonaut) HTTP server.
 
@@ -101,6 +105,25 @@ We maintain systematic tracking of upstream issues and pull requests:
 - **[docs/ISSUES_TRACKING.md](docs/ISSUES_TRACKING.md)** - Comprehensive issue tracking
 - **[docs/HEADER_PARSING_GUIDE.md](docs/HEADER_PARSING_GUIDE.md)** - Guide for parsing header values (e.g., filenames with spaces)
 
+#### Quality Assurance
+
+**Testing & Coverage**:
+- 18 functional tests (basic, binary, RFC compliance, regression)
+- Code coverage tracking
+- Performance benchmarking
+
+**Memory Safety**:
+- AddressSanitizer (ASAN) - Detects memory leaks and buffer overflows
+- UndefinedBehaviorSanitizer (UBSan) - Detects undefined behavior
+- Valgrind memcheck - Memory error detection
+
+**Performance Analysis**:
+- Callgrind profiling - Identifies performance hotspots
+- Cachegrind profiling - Cache performance analysis
+- Continuous benchmarking
+
+See **[CI_ANALYSIS.md](CI_ANALYSIS.md)** for complete CI/CD documentation.
+
 #### Quick Status
 
 **Ready to Merge** (Safe improvements):
@@ -118,6 +141,7 @@ See [UPSTREAM_TRACKING.md](UPSTREAM_TRACKING.md) for full analysis.
 We provide automated upstream tracking:
 - **Script**: `scripts/check-upstream.sh` - Manual check for new issues/PRs
 - **GitHub Action**: `.github/workflows/upstream-tracking.yml` - Weekly automated checks
+- **GitHub Action**: `.github/workflows/ci.yml` - Automated testing and analysis
 
 ---
 

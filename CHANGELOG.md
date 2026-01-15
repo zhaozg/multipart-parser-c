@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CI/CD Pipeline** (`.github/workflows/ci.yml`):
+  - AddressSanitizer for memory safety checking
+  - UndefinedBehaviorSanitizer for undefined behavior detection
+  - Valgrind memcheck for memory leak detection
+  - Code coverage analysis with gcov/lcov/gcovr
+  - Callgrind performance profiling to identify hotspots
+  - Cachegrind cache performance analysis
+  - Automated artifact uploads for all reports
+- **Makefile targets for local analysis**:
+  - `make test-asan` - Run tests with AddressSanitizer
+  - `make test-ubsan` - Run tests with UndefinedBehaviorSanitizer
+  - `make test-valgrind` - Run tests with Valgrind memcheck
+  - `make coverage` - Generate code coverage reports
+  - `make profile-callgrind` - Profile with Callgrind
+  - `make profile-cachegrind` - Profile cache performance
+  - `make test-all` - Run all sanitizers and analysis
+- `CI_ANALYSIS.md`: Comprehensive CI/CD and analysis documentation
+- `.valgrind.suppressions`: Valgrind suppressions for system library false positives
 - **RFC 2046 compliance test suite** (`test_rfc.c`) with 4 tests:
   - Single part with proper `--` boundary prefix
   - Multiple parts parsing
