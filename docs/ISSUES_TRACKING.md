@@ -87,37 +87,47 @@ Current implementation incorrectly handles the "--" prefix.
 #### Issue #27: Filename with spaces not supported
 - **Link**: https://github.com/iafonov/multipart-parser-c/issues/27
 - **Opened**: 2020-04-29 by psvtrajan
-- **Status**: Open, 1 comment
-- **Category**: Bug - Parsing
+- **Status**: Open (upstream), **NOT APPLICABLE to this parser** ✅
+- **Category**: User Code - Not Parser Bug
 
-**Problem**:
-The `handle_headervalue` function uses `strtok()` with both semicolon (`;`) and space (` `) as delimiters. This causes filenames containing spaces to be truncated or parsed incorrectly.
+**Problem (Clarification)**:
+This issue is **not about the parser itself**, but about how **users** might parse the `Content-Disposition` header values in their callback functions. The `handle_headervalue` function mentioned does not exist in this codebase.
+
+The parser correctly passes raw header values to callbacks. The problem occurs when users incorrectly use `strtok(value, "; ")` in their own code to parse these values.
 
 **Example**:
 ```
 Content-Disposition: form-data; name="file"; filename="my document.pdf"
 ```
-Would be parsed incorrectly, splitting at "my" and "document.pdf".
 
-**Technical Analysis**:
-- Function: `handle_headervalue()`
-- Issue: `strtok(value, "; ")` treats space as delimiter
-- Impact: File uploads with spaces in names fail
+The parser emits this value correctly. However, if user code parses it with:
+```c
+/* ❌ INCORRECT user code */
+char* token = strtok(value, "; ");
+```
+It would incorrectly split at spaces within the quoted filename.
 
-**Proposed Solution**:
-- Parse header value more carefully
-- Only split on semicolons, not spaces
-- Handle quoted strings properly
-- Follow RFC 2183 (Content-Disposition)
+**This Fork's Status**: ✅ **DOCUMENTED**
+- The parser itself works correctly
+- Created comprehensive guide: `docs/HEADER_PARSING_GUIDE.md`
+- Provides correct implementation examples
+- Explains RFC 2183 Content-Disposition format
+- Shows how to properly handle quoted strings
+
+**Solution for Users**:
+- Parse header values respecting quoted strings
+- Only use semicolon (`;`) as parameter delimiter
+- Never include space as a delimiter when parsing quoted values
+- See `docs/HEADER_PARSING_GUIDE.md` for complete examples
 
 **Action Items**:
-- [ ] Review header value parsing code
-- [ ] Implement proper quoted string handling
-- [ ] Test with various filename formats
-- [ ] Test with special characters
-- [ ] Ensure backward compatibility
+- [x] Clarify that this is about user code, not the parser
+- [x] Create documentation guide with correct examples
+- [x] Provide RFC 2183 compliant parser implementation
+- [x] Add test examples for filenames with spaces
+- [x] Document in tracking files
 
-**Priority Justification**: Very common use case - files with spaces in names.
+**Priority Justification**: Documentation issue, not a parser bug. Resolved with comprehensive guide.
 
 ---
 
@@ -241,7 +251,7 @@ Both lines should be combined or multiple callbacks issued.
 #### Issue #13: Header value processing with 1-byte feeding
 - **Link**: https://github.com/iafonov/multipart-parser-c/issues/13
 - **Opened**: 2013-09-11 by DmitriyMaksimov
-- **Status**: Open, 1 comment
+- **Status**: Open (upstream), **FIXED in this fork** ✅
 - **Category**: Bug - Edge Case
 
 **Problem**:
@@ -250,38 +260,44 @@ When feeding parser exactly 1 byte at a time, `on_header_value` callback is invo
 2. Once with len=1 and CR character
 
 **Technical Analysis**:
-Missing `break` or `else` in `s_header_value` case.
+Missing `break` or `else` in `s_header_value` case in upstream.
 
-**Current Code**:
+**This Fork's Status**: ✅ **ALREADY FIXED**
+The code in this fork already contains the necessary `break` statement at line 246 of `multipart_parser.c`.
+
+**Current Code in This Fork**:
 ```c
 case s_header_value:
     if (c == CR) {
         EMIT_DATA_CB(header_value, buf + mark, i - mark);
         p->state = s_header_value_almost_done;
+        break;  // ✅ Already present
     }
     if (is_last)
         EMIT_DATA_CB(header_value, buf + mark, (i - mark) + 1);
 ```
 
-**Proposed Fix**:
-Add `else` or `break`:
+**Upstream Code** (has the bug):
 ```c
 case s_header_value:
     if (c == CR) {
         EMIT_DATA_CB(header_value, buf + mark, i - mark);
         p->state = s_header_value_almost_done;
-        break;  // Add this
+        // Missing break here
     }
     if (is_last)
         EMIT_DATA_CB(header_value, buf + mark, (i - mark) + 1);
 ```
+
+**Verification**:
+A test case (`test_issue13.c`) has been created and confirms the fix works correctly.
 
 **Action Items**:
-- [ ] Verify the bug exists
-- [ ] Apply proposed fix
-- [ ] Test with 1-byte feeding
-- [ ] Test with normal feeding
-- [ ] Check for similar patterns
+- [x] Verify the bug exists in upstream (documented above)
+- [x] Fix is already applied in this fork
+- [x] Test with 1-byte feeding (test_issue13.c passes)
+- [x] Test with normal feeding (all existing tests pass)
+- [x] Check for similar patterns (no other similar issues found)
 
 **Priority Justification**: Very unusual usage pattern (1 byte at a time).
 
@@ -303,13 +319,18 @@ case s_header_value:
 
 ## Priority Summary
 
-| Priority | Count | Issues |
-|----------|-------|--------|
-| 🔴 Critical | 1 | #33 |
-| 🟡 High | 2 | #20, #27 |
-| 🟢 Medium | 2 | #22, #18 |
-| 🔵 Low | 2 | #14, #13 |
-| ℹ️ Info | 1 | #26 |
+| Priority | Count | Issues | Status in This Fork |
+|----------|-------|--------|---------------------|
+| 🔴 Critical | 1 | #33 | ✅ Tested & Documented |
+| 🟡 High | 2 | #20, #27 | ✅ #20 Fixed, #27 N/A |
+| 🟢 Medium | 2 | #22, #18 | ⚠️ Needs review |
+| 🔵 Low | 2 | #14, #13 | ✅ #13 Fixed, #14 defer |
+| ℹ️ Info | 1 | #26 | N/A |
+
+**Legend**:
+- ✅ Fixed/Resolved in this fork
+- ⚠️ Needs investigation/review
+- N/A: Not applicable or external question
 
 ---
 
