@@ -131,12 +131,13 @@ See **[docs/ci/CI_GUIDE.md](docs/ci/CI_GUIDE.md)** for complete CI/CD documentat
 - PR #24: Fix missing va_end ✅ (va_end present line 21)
 - PR #28: RFC-compliant boundary processing ✅ (4 tests passing)
 - Issue #13: Header value CR with 1-byte feeding ✅ (fixed + tested)
+- Issue #33: Binary data with CR ✅ (RFC 2046 compliant, test fixed)
 
-**Documented Known Limitations**:
-- Issue #33: Binary data with embedded CR (not followed by LF) ⚠️ (documented, test exists)
+**Documented**:
 - Issue #27: Filename parsing with spaces (user code issue - documentation provided)
 
-**Other Binary Data Handling** (All Working):
+**Binary Data Handling** (All Working):
+- Isolated CR (0x0D) in binary data ✅
 - NULL bytes in binary data ✅
 - Boundary-like sequences in binary data ✅
 - High-byte binary data (0x80-0xFF) ✅

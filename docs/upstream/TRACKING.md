@@ -23,18 +23,19 @@ This document tracks issues and pull requests from the upstream repository [iafo
 ### High Priority Issues
 
 #### Issue #33: The path from s_part_data_almost_boundary to s_part_data_boundary
-- **Status**: Open (Upstream) | ⚠️ **DOCUMENTED in this fork**
+- **Status**: Open (Upstream) | ✅ **RESOLVED in this fork**
 - **Created**: 2022-11-17
 - **Priority**: High
 - **Description**: Parser fails to correctly handle binary image data in multipart packets. Missing conditions for state transfer from s_part_data_almost_boundary to s_part_data_boundary when boundary appears directly after binary bytes without CRLF.
 - **Impact**: Affects binary file uploads (images, etc.) with embedded CR not followed by LF
 - **This Fork Status**: 
-  - ✅ Test coverage exists (test.c, Test 2.1)
-  - ⚠️ Known limitation documented
-  - ✅ Other binary data handling works (NULL bytes, high bytes, CRLF sequences)
-  - 🔄 Proper fix not yet implemented
-- **Recommendation**: **FUTURE FIX** - Currently documented as known limitation
-- **Security**: Low risk - documented limitation
+  - ✅ **RESOLVED** - The parser implementation is RFC 2046 compliant
+  - ✅ Test coverage exists and passes (test.c, Test 2.1)
+  - ✅ Issue was caused by test bug (incorrect memcpy length copying NUL terminator), not parser bug
+  - ✅ Parser correctly handles isolated CR (0x0D) by buffering and emitting as data when not followed by LF
+- **Root Cause**: Test data construction error - `memcpy(..., 41)` should have been `memcpy(..., 40)` to avoid copying NUL terminator
+- **Recommendation**: **ISSUE CLOSED** - Parser is RFC-compliant
+- **Security**: Low risk - proper RFC 2046 compliance confirmed
 
 #### Issue #27: Unable to upload filename with spaces
 - **Status**: Open (has 1 comment)
@@ -191,19 +192,18 @@ This document tracks issues and pull requests from the upstream repository [iafo
 
 1. **PR #28** (RFC boundary compliance) - ✅ Implemented and tested with 4 passing tests
 2. **PR #29** (Check malloc result) - ✅ NULL check present
-3. **Issue #13** (Header value with 1-byte feeding) - ✅ Fixed with test coverage
+3. **PR #24** (va_end fix) - ✅ Implemented
+4. **Issue #13** (Header value with 1-byte feeding) - ✅ Fixed with test coverage
+5. **Issue #33** (Binary data with CR) - ✅ **RESOLVED** - Parser is RFC 2046 compliant, test bug fixed
 
-### Documented Known Limitations ⚠️
+### Documented ✅
 
-1. **Issue #33** (Binary data with CR) - Test exists, documented as known limitation
-2. **Issue #27** (Filename parsing) - Documentation guide provided
+1. **Issue #27** (Filename parsing) - Documentation guide provided
 
 ### Future Actions (Priority Order)
 
-1. **Verify PR #24** (va_end) - Check if already present, low risk
-2. **Fix Issue #33** (Binary CR handling) - Implement proper solution for CR in binary data
-3. **Review PR #25** (Fix s_part_data condition) - Needs careful testing
-4. **Consider Issue #22** (Chunk handling) - API design impact
+1. **Review PR #25** (Fix s_part_data condition) - Needs careful testing
+2. **Consider Issue #22** (Chunk handling) - API design impact
 
 ### Low Priority / Deferred
 
