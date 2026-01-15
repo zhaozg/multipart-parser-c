@@ -87,7 +87,7 @@ Current implementation incorrectly handles the "--" prefix.
 #### Issue #27: Filename with spaces not supported
 - **Link**: https://github.com/iafonov/multipart-parser-c/issues/27
 - **Opened**: 2020-04-29 by psvtrajan
-- **Status**: Open (upstream), **NOT APPLICABLE to this parser** ✅
+- **Status**: Open (upstream), **RESOLVED in this fork - Documentation provided** ✅
 - **Category**: User Code - Not Parser Bug
 
 **Problem (Clarification)**:
