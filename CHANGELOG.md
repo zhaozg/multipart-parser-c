@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `make profile-callgrind` - Profile with Callgrind
   - `make profile-cachegrind` - Profile cache performance
   - `make test-all` - Run all sanitizers and analysis
-- `CI_ANALYSIS.md`: Comprehensive CI/CD and analysis documentation
+- `docs/ci/CI_GUIDE.md`: Comprehensive CI/CD and analysis documentation
 - `.valgrind.suppressions`: Valgrind suppressions for system library false positives
 - **RFC 2046 compliance test suite** (`test_rfc.c`) with 4 tests:
   - Single part with proper `--` boundary prefix
@@ -54,14 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Large message parsing (baseline: ~385 MB/s for 100KB)
   - Chunked parsing efficiency (1-256 byte chunks)
   - Multiple parts performance (1-50 parts)
-- `SECURITY_IMPROVEMENTS.md`: Comprehensive security and correctness analysis
-- `TESTING.md`: Complete testing guide with binary and performance tests
-- `PR_SUMMARY.md`: Bilingual (Chinese/English) summary
+- `docs/SECURITY.md`: Comprehensive security and correctness analysis
+- `docs/TESTING.md`: Complete testing guide with binary and performance tests
+- `PR_SUMMARY.md`: Bilingual (Chinese/English) summary (archived, content in CHANGELOG)
 - Expanded `.gitignore` for better build artifact management
 - Upstream tracking documentation system
-  - `UPSTREAM_TRACKING.md`: Main tracking document for issues and PRs
-  - `docs/PR_ANALYSIS.md`: Detailed PR analysis and recommendations
-  - `docs/ISSUES_TRACKING.md`: Comprehensive issue tracking and prioritization
+  - `docs/upstream/TRACKING.md`: Main tracking document for issues and PRs
+  - `docs/upstream/PR_ANALYSIS.md`: Detailed PR analysis and recommendations
+  - `docs/upstream/ISSUES_TRACKING.md`: Comprehensive issue tracking and prioritization
   - `docs/README.md`: Documentation guide
 
 ### Changed
@@ -201,7 +201,7 @@ Each version will include:
 
 When making changes:
 1. Update this CHANGELOG
-2. Update UPSTREAM_TRACKING.md if merging upstream changes
+2. Update docs/upstream/TRACKING.md if merging upstream changes
 3. Add entry to appropriate section (Added/Changed/Fixed/Security)
 4. Link to related issues or PRs
 5. Tag version when releasing

@@ -100,9 +100,9 @@ This is a fork of [iafonov/multipart-parser-c](https://github.com/iafonov/multip
 
 We maintain systematic tracking of upstream issues and pull requests:
 
-- **[UPSTREAM_TRACKING.md](UPSTREAM_TRACKING.md)** - Main tracking document with recommendations
-- **[docs/PR_ANALYSIS.md](docs/PR_ANALYSIS.md)** - Detailed analysis of upstream PRs
-- **[docs/ISSUES_TRACKING.md](docs/ISSUES_TRACKING.md)** - Comprehensive issue tracking
+- **[docs/upstream/TRACKING.md](docs/upstream/TRACKING.md)** - Main tracking document with recommendations
+- **[docs/upstream/PR_ANALYSIS.md](docs/upstream/PR_ANALYSIS.md)** - Detailed analysis of upstream PRs
+- **[docs/upstream/ISSUES_TRACKING.md](docs/upstream/ISSUES_TRACKING.md)** - Comprehensive issue tracking
 - **[docs/HEADER_PARSING_GUIDE.md](docs/HEADER_PARSING_GUIDE.md)** - Guide for parsing header values (e.g., filenames with spaces)
 
 #### Quality Assurance
@@ -122,7 +122,7 @@ We maintain systematic tracking of upstream issues and pull requests:
 - Cachegrind profiling - Cache performance analysis
 - Continuous benchmarking
 
-See **[CI_ANALYSIS.md](CI_ANALYSIS.md)** for complete CI/CD documentation.
+See **[docs/ci/CI_GUIDE.md](docs/ci/CI_GUIDE.md)** for complete CI/CD documentation.
 
 #### Quick Status
 
@@ -134,7 +134,7 @@ See **[CI_ANALYSIS.md](CI_ANALYSIS.md)** for complete CI/CD documentation.
 - PR #28: RFC-compliant boundary processing ⚠️
 - Issue #33: Binary data handling in multipart packets 🔴
 
-See [UPSTREAM_TRACKING.md](UPSTREAM_TRACKING.md) for full analysis.
+See [docs/upstream/TRACKING.md](docs/upstream/TRACKING.md) for full analysis.
 
 #### Automated Tracking
 

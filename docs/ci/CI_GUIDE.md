@@ -399,10 +399,9 @@ This is acceptable if:
 
 ## Related Documentation
 
-- [TESTING.md](TESTING.md) - Test suite documentation
-- [SECURITY_IMPROVEMENTS.md](SECURITY_IMPROVEMENTS.md) - Security analysis
-- [OPTIMIZATION_SUMMARY.md](OPTIMIZATION_SUMMARY.md) - Optimization work completed
-- [CHANGELOG.md](CHANGELOG.md) - Version history
+- [../TESTING.md](../TESTING.md) - Test suite documentation
+- [../SECURITY.md](../SECURITY.md) - Security analysis
+- [../../CHANGELOG.md](../../CHANGELOG.md) - Version history
 
 ## Continuous Improvement
 
