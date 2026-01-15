@@ -68,7 +68,7 @@ struct multipart_parser_settings {
   multipart_data_cb on_part_data;         /**< Called when part data is available */
 
   multipart_notify_cb on_part_data_begin; /**< Called when a new part begins */
-  multipart_notify_cb on_headers_complete;/**< Called when headers are complete */
+  multipart_notify_cb on_headers_complete; /**< Called when headers are complete */
   multipart_notify_cb on_part_data_end;   /**< Called when a part ends */
   multipart_notify_cb on_body_end;        /**< Called when the entire body ends */
 };
