@@ -272,7 +272,8 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
             if (cr_pos == NULL) {
                 /* No CR found, emit all remaining data */
                 EMIT_DATA_CB(part_data, buf + mark, len - mark);
-                i = len - 1; /* Will increment at loop end */
+                /* Skip to end - loop will increment i to len and exit */
+                i = len - 1;
                 break;
             } else {
                 /* CR found, emit data up to CR */
