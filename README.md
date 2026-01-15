@@ -105,6 +105,20 @@ We maintain systematic tracking of upstream issues and pull requests:
 - **[docs/upstream/ISSUES_TRACKING.md](docs/upstream/ISSUES_TRACKING.md)** - Comprehensive issue tracking
 - **[docs/HEADER_PARSING_GUIDE.md](docs/HEADER_PARSING_GUIDE.md)** - Guide for parsing header values (e.g., filenames with spaces)
 
+#### Optimization and Future Roadmap
+
+We have conducted a comprehensive analysis of optimization opportunities:
+
+- **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Detailed optimization analysis and action plan (English)
+- **[docs/OPTIMIZATION_ZH.md](docs/OPTIMIZATION_ZH.md)** - 优化分析与行动路径（中文版本）
+
+Key opportunities identified:
+- **Performance**: 30-100% potential improvement through hot-path optimizations
+- **Build System**: CMake support for better cross-platform compatibility
+- **API Enhancements**: Error handling, buffered callbacks, C++ wrappers
+- **Ecosystem**: Language bindings (Python, Node.js, Go, Rust)
+- **Security**: Fuzzing infrastructure and additional hardening
+
 #### Quality Assurance
 
 **Testing & Coverage**:
