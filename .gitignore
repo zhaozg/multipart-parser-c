@@ -3,6 +3,8 @@
 *.a
 test
 benchmark
+fuzz-afl
+fuzz-libfuzzer
 *.dSYM/
 *.out
 .vscode/
@@ -23,3 +25,12 @@ callgrind.out*
 cachegrind.out*
 massif.out*
 valgrind-*.log
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+fuzz-corpus/
+fuzz-findings/
+gmon.out
+perf.data*
+.DS_Store

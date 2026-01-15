@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: multipart-parser-c
+Description: RFC 2046 compliant multipart/form-data parser in C
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lmultipart_parser
+Cflags: -I${includedir}
