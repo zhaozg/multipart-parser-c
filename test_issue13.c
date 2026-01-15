@@ -22,18 +22,22 @@ typedef struct {
 
 static int on_header_value(multipart_parser* p, const char *at, size_t length) {
     test_context* ctx = (test_context*)multipart_parser_get_data(p);
+    size_t i;
     ctx->header_value_count++;
     
     /* Save the last value */
-    if (length < sizeof(ctx->last_header_value)) {
+    if (length <= sizeof(ctx->last_header_value) - 1) {
         memcpy(ctx->last_header_value, at, length);
         ctx->last_header_value_len = length;
         ctx->last_header_value[length] = '\0';
     }
     
-    /* Check if CR is in the value */
-    if (length > 0 && at[length - 1] == '\r') {
-        ctx->found_cr_in_value = 1;
+    /* Check if CR is anywhere in the value */
+    for (i = 0; i < length; i++) {
+        if (at[i] == '\r') {
+            ctx->found_cr_in_value = 1;
+            break;
+        }
     }
     
     return 0;
