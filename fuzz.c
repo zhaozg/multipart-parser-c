@@ -83,15 +83,15 @@ int main(void) {
 
     /* Extract boundary from first part of input (up to 70 bytes max) */
     size_t boundary_len = size > 70 ? 70 : size;
-    
+
     /* Ensure boundary is reasonable length (1-70 bytes) */
     if (boundary_len < 1) boundary_len = 1;
     if (boundary_len > size / 2) boundary_len = size / 2;
-    
+
     char boundary[71];
     memcpy(boundary, data, boundary_len);
     boundary[boundary_len] = '\0';
-    
+
     /* Replace any null bytes in boundary */
     size_t i;
     for (i = 0; i < boundary_len; i++) {
@@ -124,7 +124,7 @@ int main(void) {
     /* Parse the data (use data after boundary as content) */
     const unsigned char *content = data + boundary_len;
     size_t content_size = size - boundary_len;
-    
+
     if (content_size > 0) {
         multipart_parser_execute(parser, (const char*)content, content_size);
     }

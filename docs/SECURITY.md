@@ -176,7 +176,7 @@ The parser makes frequent small callbacks for part data. Users should implement 
 2. Better documentation of expected data format
 3. Example programs for common use cases
 
-### Low Priority  
+### Low Priority
 1. Multiline header support (PR #15) if needed
 2. Additional RFC compliance tests
 

@@ -46,6 +46,6 @@ clean:
 # Test target
 test: $(TARGET)
 	@echo "Running Lua tests..."
-	luajit ../../test.lua || lua ../../test.lua
+	luajit test.lua || lua test.lua
 
 .PHONY: all install clean test

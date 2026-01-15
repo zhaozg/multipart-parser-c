@@ -1,4 +1,4 @@
-/* Based on node-formidable by Felix Geisendörfer 
+/* Based on node-formidable by Felix Geisendörfer
  * Igor Afonov - afonov@gmail.com - 2012
  * MIT License - http://www.opensource.org/licenses/mit-license.php
  */
@@ -16,7 +16,7 @@ extern "C"
 /**
  * @file multipart_parser.h
  * @brief RFC 2046 compliant multipart/form-data parser
- * 
+ *
  * This library provides a streaming parser for multipart/form-data content.
  * It works with chunks of data without requiring the entire request to be
  * buffered in memory.
@@ -41,7 +41,7 @@ typedef struct multipart_parser_state multipart_parser_state;
 
 /**
  * @brief Callback for data fields (header fields, header values, part data)
- * 
+ *
  * @param p Pointer to the parser
  * @param at Pointer to the data
  * @param length Length of the data
@@ -51,7 +51,7 @@ typedef int (*multipart_data_cb) (multipart_parser*, const char *at, size_t leng
 
 /**
  * @brief Callback for notification events
- * 
+ *
  * @param p Pointer to the parser
  * @return 0 to continue parsing, non-zero to pause
  */
@@ -59,7 +59,7 @@ typedef int (*multipart_notify_cb) (multipart_parser*);
 
 /**
  * @brief Parser callback settings
- * 
+ *
  * All callbacks are optional. Set unused callbacks to NULL.
  */
 struct multipart_parser_settings {
@@ -71,21 +71,21 @@ struct multipart_parser_settings {
   multipart_notify_cb on_headers_complete; /**< Called when headers are complete */
   multipart_notify_cb on_part_data_end;   /**< Called when a part ends */
   multipart_notify_cb on_body_end;        /**< Called when the entire body ends */
-  
+
   size_t buffer_size;                     /**< Buffer size for data callbacks (0 = no buffering) */
 };
 
 /**
  * @brief Initialize a new multipart parser
- * 
+ *
  * Creates and initializes a new parser with the specified boundary string.
  * The boundary should NOT include the leading "--" prefix (it will be added
  * automatically as per RFC 2046).
- * 
+ *
  * @param boundary The boundary string (without "--" prefix)
  * @param settings Pointer to callback settings structure
  * @return Pointer to the new parser, or NULL on allocation failure
- * 
+ *
  * @note The caller must free the returned parser with multipart_parser_free()
  * @see multipart_parser_free()
  */
@@ -94,24 +94,24 @@ multipart_parser* multipart_parser_init
 
 /**
  * @brief Free a multipart parser
- * 
+ *
  * Releases all resources associated with the parser.
- * 
+ *
  * @param p Pointer to the parser to free
  */
 void multipart_parser_free(multipart_parser* p);
 
 /**
  * @brief Parse a chunk of multipart data
- * 
+ *
  * Processes a chunk of multipart data. Can be called multiple times with
  * successive chunks. Callbacks will be invoked as data is parsed.
- * 
+ *
  * @param p Pointer to the parser
  * @param buf Pointer to the data buffer
  * @param len Length of the data buffer
  * @return Number of bytes parsed, or position where error/pause occurred
- * 
+ *
  * @note If return value < len, check multipart_parser_get_error() for details
  * @see multipart_parser_get_error()
  * @see multipart_parser_get_error_message()
@@ -120,10 +120,10 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
 
 /**
  * @brief Set user data pointer
- * 
+ *
  * Associates arbitrary user data with the parser. This pointer can be
  * retrieved in callbacks using multipart_parser_get_data().
- * 
+ *
  * @param p Pointer to the parser
  * @param data User data pointer
  * @see multipart_parser_get_data()
@@ -132,10 +132,10 @@ void multipart_parser_set_data(multipart_parser* p, void* data);
 
 /**
  * @brief Get user data pointer
- * 
+ *
  * Retrieves the user data pointer previously set with
  * multipart_parser_set_data().
- * 
+ *
  * @param p Pointer to the parser
  * @return User data pointer
  * @see multipart_parser_set_data()
@@ -144,9 +144,9 @@ void * multipart_parser_get_data(multipart_parser* p);
 
 /**
  * @brief Get the last error code
- * 
+ *
  * Returns the error code from the last parse operation.
- * 
+ *
  * @param p Pointer to the parser
  * @return Error code (MPPE_OK if no error)
  * @see multipart_parser_error
@@ -156,9 +156,9 @@ multipart_parser_error multipart_parser_get_error(multipart_parser* p);
 
 /**
  * @brief Get a human-readable error message
- * 
+ *
  * Returns a descriptive error message for the last error.
- * 
+ *
  * @param p Pointer to the parser
  * @return Error message string (never NULL)
  * @see multipart_parser_get_error()

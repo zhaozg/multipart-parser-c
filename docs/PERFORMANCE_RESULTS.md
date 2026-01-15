@@ -149,8 +149,6 @@ settings.buffer_size = 0;    // Disable (default) for large chunks
 
 ## Comparison with SIMD
 
-As documented in `SIMD_ANALYSIS.md`, custom SIMD implementations were evaluated:
-
 **Conclusion**: memchr() already uses SIMD internally (SSE2/AVX2/AVX512)
 
 **Benchmark comparison** (Intel Xeon):

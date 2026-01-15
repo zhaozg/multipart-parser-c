@@ -114,8 +114,6 @@ We maintain systematic tracking of upstream issues and pull requests:
 
 - **[docs/PERFORMANCE_RESULTS.md](docs/PERFORMANCE_RESULTS.md)** - Measured performance benchmarking results
 - **[docs/STATUS.md](docs/STATUS.md)** - Implementation status and summary
-- **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Complete optimization analysis (English)
-- **[docs/OPTIMIZATION_ZH.md](docs/OPTIMIZATION_ZH.md)** - 优化分析（中文版本）
 
 **Achieved Improvements** (Phase 1 & 2 complete):
 - **Performance**: 24-41% real-world improvement (memchr optimization, callback buffering, state machine)

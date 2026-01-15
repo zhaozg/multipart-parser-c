@@ -43,38 +43,38 @@ typedef struct {
     char filename[256];
 } disposition_info;
 
-int parse_content_disposition(const char* value, size_t length, 
+int parse_content_disposition(const char* value, size_t length,
                                disposition_info* info) {
     size_t i = 0;
     char key[64];
     char val[256];
     int in_quotes = 0;
-    
+
     /* Skip "form-data" or "attachment" etc. */
     while (i < length && value[i] != ';') i++;
     if (i >= length) return 0;
     i++; /* skip semicolon */
-    
+
     while (i < length) {
         /* Skip whitespace */
         while (i < length && (value[i] == ' ' || value[i] == '\t')) i++;
         if (i >= length) break;
-        
+
         /* Read key */
         size_t key_len = 0;
         while (i < length && value[i] != '=' && key_len < sizeof(key) - 1) {
             key[key_len++] = value[i++];
         }
         key[key_len] = '\0';
-        
+
         if (i >= length || value[i] != '=') break;
         i++; /* skip '=' */
-        
+
         /* Read value (may be quoted) */
         size_t val_len = 0;
         in_quotes = (i < length && value[i] == '"');
         if (in_quotes) i++; /* skip opening quote */
-        
+
         while (i < length && val_len < sizeof(val) - 1) {
             if (in_quotes) {
                 if (value[i] == '"') {
@@ -87,7 +87,7 @@ int parse_content_disposition(const char* value, size_t length,
             val[val_len++] = value[i++];
         }
         val[val_len] = '\0';
-        
+
         /* Store the parsed value (with explicit null termination) */
         if (strcmp(key, "name") == 0) {
             strncpy(info->name, val, sizeof(info->name) - 1);
@@ -96,12 +96,12 @@ int parse_content_disposition(const char* value, size_t length,
             strncpy(info->filename, val, sizeof(info->filename) - 1);
             info->filename[sizeof(info->filename) - 1] = '\0';  /* Ensure null termination */
         }
-        
+
         /* Skip to next parameter */
         while (i < length && value[i] != ';') i++;
         if (i < length) i++; /* skip semicolon */
     }
-    
+
     return 1;
 }
 ```
@@ -117,23 +117,23 @@ typedef struct {
 
 int on_header_field(multipart_parser* p, const char* at, size_t length) {
     parser_context* ctx = (parser_context*)multipart_parser_get_data(p);
-    
+
     if (length < sizeof(ctx->current_field)) {
         memcpy(ctx->current_field, at, length);
         ctx->current_field[length] = '\0';
     }
-    
+
     return 0;
 }
 
 int on_header_value(multipart_parser* p, const char* at, size_t length) {
     parser_context* ctx = (parser_context*)multipart_parser_get_data(p);
-    
+
     /* Check if this is Content-Disposition */
     if (strcasecmp(ctx->current_field, "Content-Disposition") == 0) {
         disposition_info info;
         memset(&info, 0, sizeof(info));
-        
+
         if (parse_content_disposition(at, length, &info)) {
             if (info.filename[0] != '\0') {
                 strncpy(ctx->filename, info.filename, sizeof(ctx->filename) - 1);
@@ -141,7 +141,7 @@ int on_header_value(multipart_parser* p, const char* at, size_t length) {
             }
         }
     }
-    
+
     return 0;
 }
 ```
@@ -160,13 +160,13 @@ void test_filename_parsing(void) {
         "form-data; name=\"upload\"; filename=\"file with many   spaces.dat\"",
         NULL
     };
-    
+
     for (i = 0; test_cases[i] != NULL; i++) {
         disposition_info info;
         memset(&info, 0, sizeof(info));
-        
+
         parse_content_disposition(test_cases[i], strlen(test_cases[i]), &info);
-        
+
         printf("Test %d: filename=\"%s\"\n", i + 1, info.filename);
     }
 }

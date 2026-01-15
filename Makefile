@@ -1,4 +1,4 @@
-CFLAGS?=-std=c89 -ansi -pedantic -O4 -Wall -fPIC
+CFLAGS?=-std=c89 -ansi -pedantic -O3 -Wall -fPIC
 # Optimized build with Link-Time Optimization
 CFLAGS_LTO?=-std=c89 -ansi -pedantic -O3 -flto -Wall -fPIC
 LDFLAGS_LTO?=-flto

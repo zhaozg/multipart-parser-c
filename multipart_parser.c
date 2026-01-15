@@ -1,4 +1,4 @@
-/* Based on node-formidable by Felix Geisendörfer 
+/* Based on node-formidable by Felix Geisendörfer
  * Igor Afonov - afonov@gmail.com - 2012
  * MIT License - http://www.opensource.org/licenses/mit-license.php
  */
@@ -64,7 +64,7 @@ struct multipart_parser {
   multipart_parser_error error;  /* Last error code */
 
   const multipart_parser_settings* settings;
-  
+
   /* Buffering support for data callbacks */
   char* header_field_buffer;
   size_t header_field_buffer_len;
@@ -102,7 +102,7 @@ multipart_parser* multipart_parser_init
     (const char *boundary, const multipart_parser_settings* settings) {
   size_t buffer_size;
   multipart_parser* p;
-  
+
   buffer_size = (settings && settings->buffer_size > 0) ? settings->buffer_size : 0;
 
   p = malloc(sizeof(multipart_parser) +
@@ -116,9 +116,9 @@ multipart_parser* multipart_parser_init
 
   strcpy(p->multipart_boundary, boundary);
   p->boundary_length = strlen(boundary);
-  
+
   p->lookbehind = (p->multipart_boundary + p->boundary_length + 1);
-  
+
   /* Initialize buffer pointers */
   if (buffer_size > 0) {
     p->header_field_buffer = p->lookbehind + p->boundary_length + 8;
@@ -129,7 +129,7 @@ multipart_parser* multipart_parser_init
     p->header_value_buffer = NULL;
     p->part_data_buffer = NULL;
   }
-  
+
   p->header_field_buffer_len = 0;
   p->header_value_buffer_len = 0;
   p->part_data_buffer_len = 0;
@@ -143,7 +143,7 @@ multipart_parser* multipart_parser_init
 }
 
 /* Helper function to flush buffered data */
-static int flush_buffer(multipart_parser* p, multipart_data_cb callback, 
+static int flush_buffer(multipart_parser* p, multipart_data_cb callback,
                         char** buffer, size_t* buffer_len) {
   int result = 0;
   if (*buffer_len > 0 && callback) {
@@ -158,7 +158,7 @@ static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
                           char** buffer, size_t* buffer_len,
                           const char* data, size_t len) {
   size_t buffer_size = p->settings->buffer_size;
-  
+
   /* If buffering disabled or no buffer, emit immediately */
   if (buffer_size == 0 || *buffer == NULL) {
     if (callback && callback(p, data, len) != 0) {
@@ -167,7 +167,7 @@ static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
     }
     return 0;
   }
-  
+
   /* Try to buffer the data */
   if (*buffer_len + len <= buffer_size) {
     /* Fits in buffer */
@@ -175,7 +175,7 @@ static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
     *buffer_len += len;
     return 0;
   }
-  
+
   /* Buffer would overflow - flush current buffer and handle new data */
   if (*buffer_len > 0) {
     if (callback && callback(p, *buffer, *buffer_len) != 0) {
@@ -184,14 +184,14 @@ static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
     }
     *buffer_len = 0;
   }
-  
+
   /* If new data fits in empty buffer, buffer it */
   if (len <= buffer_size) {
     memcpy(*buffer, data, len);
     *buffer_len = len;
     return 0;
   }
-  
+
   /* Data too large for buffer, emit directly */
   if (callback && callback(p, data, len) != 0) {
     p->error = MPPE_PAUSED;
@@ -513,7 +513,7 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
         }
         p->error = MPPE_INVALID_BOUNDARY;
         return i;
-   
+
       case s_part_data_final_hyphen:
         multipart_log("s_part_data_final_hyphen");
         if (c == '-') {

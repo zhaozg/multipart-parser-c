@@ -72,14 +72,14 @@ if result then
     -- result is an array of parts
     for i, part in ipairs(result) do
         print("Part " .. i .. ":")
-        
+
         -- Headers are stored as key-value pairs
         for k, v in pairs(part) do
             if type(k) == "string" then
                 print("  Header: " .. k .. " = " .. v)
             end
         end
-        
+
         -- Data chunks are stored in array part
         for j, chunk in ipairs(part) do
             print("  Data: " .. chunk)
@@ -124,32 +124,32 @@ local callbacks = {
         print("Header field: " .. data)
         return 0  -- Continue parsing
     end,
-    
+
     on_header_value = function(data)
         print("Header value: " .. data)
         return 0
     end,
-    
+
     on_part_data = function(data)
         print("Part data: " .. data)
         return 0
     end,
-    
+
     on_part_data_begin = function()
         print("Part begins")
         return 0
     end,
-    
+
     on_headers_complete = function()
         print("Headers complete")
         return 0
     end,
-    
+
     on_part_data_end = function()
         print("Part ends")
         return 0
     end,
-    
+
     on_body_end = function()
         print("Body ends")
         return 0
@@ -186,24 +186,24 @@ local callbacks = {
         current_part.current_field = data
         return 0
     end,
-    
+
     on_header_value = function(data)
         if current_part.current_field then
             current_part.headers[current_part.current_field] = data
         end
         return 0
     end,
-    
+
     on_part_data = function(data)
         table.insert(current_part.data, data)
         return 0
     end,
-    
+
     on_part_data_begin = function()
         current_part = {headers = {}, data = {}}
         return 0
     end,
-    
+
     on_part_data_end = function()
         current_part.full_data = table.concat(current_part.data)
         table.insert(parts, current_part)
@@ -294,7 +294,7 @@ if result then
     for i, part in ipairs(result) do
         -- Access headers
         local content_type = part["Content-Type"]
-        
+
         -- Access data chunks
         for j, chunk in ipairs(part) do
             print(chunk)
@@ -325,9 +325,9 @@ end
 **Example:**
 ```lua
 local parser = mp.new("boundary123", {
-    on_part_data = function(data) 
-        print(data) 
-        return 0 
+    on_part_data = function(data)
+        print(data)
+        return 0
     end
 })
 ```
@@ -449,7 +449,7 @@ cd binding/lua
 make test
 
 # Or run directly
-luajit ../../test.lua
+luajit test.lua
 ```
 
 The test suite includes 15 comprehensive tests covering:
@@ -477,4 +477,4 @@ MIT License - Same as multipart-parser-c
 ## See Also
 
 - [Main README](../../README.md) - C library documentation
-- [test.lua](../../test.lua) - Comprehensive test examples
+- [test.lua](./test.lua) - Comprehensive test examples
