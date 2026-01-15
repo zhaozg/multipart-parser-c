@@ -152,6 +152,7 @@ Here's a simple test to verify your header parsing handles filenames correctly:
 
 ```c
 void test_filename_parsing(void) {
+    int i;
     const char* test_cases[] = {
         "form-data; name=\"file\"; filename=\"document.pdf\"",
         "form-data; name=\"file\"; filename=\"my document.pdf\"",
@@ -160,7 +161,7 @@ void test_filename_parsing(void) {
         NULL
     };
     
-    for (int i = 0; test_cases[i] != NULL; i++) {
+    for (i = 0; test_cases[i] != NULL; i++) {
         disposition_info info;
         memset(&info, 0, sizeof(info));
         
