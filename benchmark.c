@@ -11,11 +11,13 @@
 typedef struct {
     size_t total_bytes;
     int part_count;
+    int callback_count;  /* Track number of callbacks for granularity metrics */
 } perf_data;
 
 int on_part_data_perf(multipart_parser* p, const char *at, size_t length) {
     perf_data *data = (perf_data*)multipart_parser_get_data(p);
     data->total_bytes += length;
+    data->callback_count++;  /* Track callback frequency */
     return 0;
 }
 
@@ -101,6 +103,9 @@ void benchmark_small_messages(void) {
     printf("Messages/sec: %.0f\n", iterations / cpu_time);
     printf("Throughput: %.2f MB/s\n", 
            (iterations * data_len) / (cpu_time * 1024 * 1024));
+    printf("Avg callbacks/msg: %.1f\n", (double)pdata.callback_count / iterations);
+    printf("Avg callback size: %.1f bytes\n", 
+           pdata.total_bytes > 0 ? (double)pdata.total_bytes / pdata.callback_count : 0);
 }
 
 /* Benchmark 2: Large message parsing */
@@ -167,6 +172,9 @@ void benchmark_large_message(void) {
     printf("Parse time: %.6f seconds\n", cpu_time);
     printf("Throughput: %.2f MB/s\n", 
            data_len / (cpu_time * 1024 * 1024));
+    printf("Total callbacks: %d\n", pdata.callback_count);
+    printf("Avg callback size: %.1f bytes\n", 
+           pdata.callback_count > 0 ? (double)pdata.total_bytes / pdata.callback_count : 0);
     
     multipart_parser_free(parser);
     free(content);
@@ -229,8 +237,8 @@ void benchmark_chunked_parsing(void) {
         end = clock();
         cpu_time = ((double)(end - start)) / CLOCKS_PER_SEC;
         
-        printf("Chunk size: %4zu bytes - Time: %.3f sec - Rate: %.0f parses/sec\n",
-               chunk_size, cpu_time, iterations / cpu_time);
+        printf("Chunk size: %4zu bytes - Time: %.3f sec - Rate: %.0f parses/sec - Callbacks: %d\n",
+               chunk_size, cpu_time, iterations / cpu_time, pdata.callback_count);
     }
 }
 

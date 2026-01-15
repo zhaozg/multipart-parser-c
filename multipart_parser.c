@@ -266,6 +266,32 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
       /* fallthrough */
       case s_part_data:
         multipart_log("s_part_data");
+        /* Optimization: Use memchr() to batch-scan for CR instead of char-by-char */
+        if (i < len) {
+            const char *cr_pos = (const char*)memchr(buf + i, CR, len - i);
+            if (cr_pos == NULL) {
+                /* No CR found, emit all remaining data */
+                EMIT_DATA_CB(part_data, buf + mark, len - mark);
+                i = len - 1; /* Will increment at loop end */
+                if (is_last) {
+                    /* Already emitted above */
+                }
+                break;
+            } else {
+                /* CR found, emit data up to CR */
+                size_t cr_index = (size_t)(cr_pos - buf);
+                if (cr_index > mark) {
+                    EMIT_DATA_CB(part_data, buf + mark, cr_index - mark);
+                }
+                i = cr_index;
+                c = CR;
+                mark = i;
+                p->state = s_part_data_almost_boundary;
+                p->lookbehind[0] = CR;
+                break;
+            }
+        }
+        /* Fallback for single character (shouldn't reach here with optimization) */
         if (c == CR) {
             EMIT_DATA_CB(part_data, buf + mark, i - mark);
             mark = i;
