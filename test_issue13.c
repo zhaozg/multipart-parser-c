@@ -46,7 +46,7 @@ int main(void) {
     size_t i, parsed;
     
     /* RFC 2046 compliant multipart message with simple header */
-    const char* message = 
+    const char* multipart_test_message = 
         "--boundary\r\n"
         "Content-Type: text/plain\r\n"
         "\r\n"
@@ -71,10 +71,11 @@ int main(void) {
     multipart_parser_set_data(parser, &ctx);
     
     /* Feed parser 1 byte at a time */
-    for (i = 0; i < strlen(message); i++) {
-        parsed = multipart_parser_execute(parser, message + i, 1);
+    for (i = 0; i < strlen(multipart_test_message); i++) {
+        parsed = multipart_parser_execute(parser, multipart_test_message + i, 1);
         if (parsed != 1) {
-            printf("FAILED: Parser stopped at byte %zu\n", i);
+            printf("FAILED: Parser stopped at byte %zu (value: 0x%02x)\n", 
+                   i, (unsigned char)multipart_test_message[i]);
             multipart_parser_free(parser);
             return 1;
         }

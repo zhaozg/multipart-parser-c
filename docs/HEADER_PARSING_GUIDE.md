@@ -91,8 +91,10 @@ int parse_content_disposition(const char* value, size_t length,
         /* Store the parsed value */
         if (strcmp(key, "name") == 0) {
             strncpy(info->name, val, sizeof(info->name) - 1);
+            info->name[sizeof(info->name) - 1] = '\0';
         } else if (strcmp(key, "filename") == 0) {
             strncpy(info->filename, val, sizeof(info->filename) - 1);
+            info->filename[sizeof(info->filename) - 1] = '\0';
         }
         
         /* Skip to next parameter */
