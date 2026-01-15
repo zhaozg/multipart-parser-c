@@ -11,40 +11,22 @@ multipart_parser.o: multipart_parser.c multipart_parser.h
 solib: multipart_parser.o
 	$(CC) -shared -Wl,-soname,libmultipart.so -o libmultipart.so multipart_parser.o
 
-test: test_basic test_binary test_rfc test_issue13
-	@echo "Running basic tests..."
-	./test_basic
-	@echo ""
-	@echo "Running binary data tests..."
-	./test_binary
-	@echo ""
-	@echo "Running RFC 2046 compliance tests..."
-	./test_rfc
-	@echo ""
-	@echo "Running Issue #13 regression test..."
-	./test_issue13
+test: test_bin
+	@echo "Running comprehensive test suite..."
+	./test
 
-test_basic: test_basic.c multipart_parser.c multipart_parser.h
-	$(CC) $(CFLAGS) -o test_basic test_basic.c multipart_parser.c
+test_bin: test.c multipart_parser.c multipart_parser.h
+	$(CC) $(CFLAGS) -o test test.c multipart_parser.c
 
-test_binary: test_binary.c multipart_parser.c multipart_parser.h
-	$(CC) $(CFLAGS) -o test_binary test_binary.c multipart_parser.c
+benchmark_bin: benchmark.c multipart_parser.c multipart_parser.h
+	$(CC) $(CFLAGS) -o benchmark benchmark.c multipart_parser.c
 
-test_rfc: test_rfc.c multipart_parser.c multipart_parser.h
-	$(CC) $(CFLAGS) -o test_rfc test_rfc.c multipart_parser.c
-
-test_issue13: test_issue13.c multipart_parser.c multipart_parser.h
-	$(CC) $(CFLAGS) -o test_issue13 test_issue13.c multipart_parser.c
-
-test_performance: test_performance.c multipart_parser.c multipart_parser.h
-	$(CC) $(CFLAGS) -o test_performance test_performance.c multipart_parser.c
-
-benchmark: test_performance
+benchmark: benchmark_bin
 	@echo "Running performance benchmarks..."
-	./test_performance
+	./benchmark
 
 clean:
-	rm -f *.o *.so test_basic test_binary test_rfc test_performance test_issue13
+	rm -f *.o *.so test benchmark
 	rm -f *.gcov *.gcda *.gcno coverage.info coverage.txt coverage.xml
 	rm -rf coverage-html
 	rm -f callgrind.out* cachegrind.out* massif.out*
@@ -52,41 +34,29 @@ clean:
 
 # AddressSanitizer targets
 test-asan: clean
-	CFLAGS="$(ASAN_FLAGS)" $(MAKE) test_basic test_binary test_rfc test_issue13
+	CFLAGS="$(ASAN_FLAGS)" $(MAKE) test_bin
 	@echo "Running tests with AddressSanitizer..."
-	ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test_basic
-	ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test_binary
-	ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test_rfc
-	ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test_issue13
+	ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test
 
 # UndefinedBehaviorSanitizer targets
 test-ubsan: clean
-	CFLAGS="$(UBSAN_FLAGS)" $(MAKE) test_basic test_binary test_rfc test_issue13
+	CFLAGS="$(UBSAN_FLAGS)" $(MAKE) test_bin
 	@echo "Running tests with UndefinedBehaviorSanitizer..."
-	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test_basic
-	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test_binary
-	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test_rfc
-	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test_issue13
+	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test
 
 # Valgrind memcheck targets
 test-valgrind: clean
-	CFLAGS="-std=c89 -ansi -pedantic -g -O0 -Wall" $(MAKE) test_basic test_binary test_rfc test_issue13
+	CFLAGS="-std=c89 -ansi -pedantic -g -O0 -Wall" $(MAKE) test_bin
 	@echo "Running tests with Valgrind memcheck..."
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=.valgrind.suppressions ./test_basic
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=.valgrind.suppressions ./test_binary
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=.valgrind.suppressions ./test_rfc
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=.valgrind.suppressions ./test_issue13
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=.valgrind.suppressions ./test
 
 # Code coverage targets
 coverage: clean
-	CFLAGS="$(COVERAGE_FLAGS)" $(MAKE) test_basic test_binary test_rfc test_issue13
+	CFLAGS="$(COVERAGE_FLAGS)" $(MAKE) test_bin
 	@echo "Running tests for coverage..."
-	./test_basic
-	./test_binary
-	./test_rfc
-	./test_issue13
+	./test
 	@echo "Generating coverage report..."
-	gcov -o . multipart_parser.c test_basic.c test_binary.c test_rfc.c test_issue13.c || true
+	gcov -o . multipart_parser.c test.c || true
 	@echo ""
 	@echo "Coverage files generated:"
 	@ls -lh *.gcov 2>/dev/null || echo "  (gcov files generated)"
@@ -113,9 +83,9 @@ coverage: clean
 
 # Performance profiling with Callgrind
 profile-callgrind: clean
-	CFLAGS="$(PROFILE_FLAGS)" $(MAKE) test_performance
+	CFLAGS="$(PROFILE_FLAGS)" $(MAKE) benchmark_bin
 	@echo "Running Callgrind profiling..."
-	valgrind --tool=callgrind --callgrind-out-file=callgrind.out --dump-instr=yes --collect-jumps=yes ./test_performance
+	valgrind --tool=callgrind --callgrind-out-file=callgrind.out --dump-instr=yes --collect-jumps=yes ./benchmark
 	@echo "Generating Callgrind report..."
 	callgrind_annotate callgrind.out --auto=yes > callgrind-report.txt
 	@echo ""
@@ -124,9 +94,9 @@ profile-callgrind: clean
 
 # Cache profiling with Cachegrind
 profile-cachegrind: clean
-	CFLAGS="$(PROFILE_FLAGS)" $(MAKE) test_performance
+	CFLAGS="$(PROFILE_FLAGS)" $(MAKE) benchmark_bin
 	@echo "Running Cachegrind profiling..."
-	valgrind --tool=cachegrind --cachegrind-out-file=cachegrind.out ./test_performance
+	valgrind --tool=cachegrind --cachegrind-out-file=cachegrind.out ./benchmark
 	@echo "Generating Cachegrind report..."
 	cg_annotate cachegrind.out --auto=yes > cachegrind-report.txt
 	@echo ""
