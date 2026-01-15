@@ -321,8 +321,8 @@ A test case (`test_issue13.c`) has been created and confirms the fix works corre
 
 | Priority | Count | Issues | Status in This Fork |
 |----------|-------|--------|---------------------|
-| 🔴 Critical | 1 | #33 | ✅ Tested & Documented |
-| 🟡 High | 2 | #20, #27 | ✅ #20 Fixed, #27 N/A |
+| 🔴 Critical | 1 | #33 | ⚠️ Documented, test exists |
+| 🟡 High | 2 | #20, #27 | ✅ #20 Fixed (PR #28 impl), #27 Documented |
 | 🟢 Medium | 2 | #22, #18 | ⚠️ Needs review |
 | 🔵 Low | 2 | #14, #13 | ✅ #13 Fixed, #14 defer |
 | ℹ️ Info | 1 | #26 | N/A |

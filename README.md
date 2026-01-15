@@ -126,13 +126,21 @@ See **[docs/ci/CI_GUIDE.md](docs/ci/CI_GUIDE.md)** for complete CI/CD documentat
 
 #### Quick Status
 
-**Ready to Merge** (Safe improvements):
-- PR #29: Check malloc result ✅
-- PR #24: Fix missing va_end ✅
+**Implemented in This Fork**:
+- PR #29: Check malloc result ✅ (NULL check present line 114-116)
+- PR #24: Fix missing va_end ✅ (va_end present line 21)
+- PR #28: RFC-compliant boundary processing ✅ (4 tests passing)
+- Issue #13: Header value CR with 1-byte feeding ✅ (fixed + tested)
 
-**Under Review** (Need testing):
-- PR #28: RFC-compliant boundary processing ⚠️
-- Issue #33: Binary data handling in multipart packets 🔴
+**Documented Known Limitations**:
+- Issue #33: Binary data with embedded CR (not followed by LF) ⚠️ (documented, test exists)
+- Issue #27: Filename parsing with spaces (user code issue - documentation provided)
+
+**Other Binary Data Handling** (All Working):
+- NULL bytes in binary data ✅
+- Boundary-like sequences in binary data ✅
+- High-byte binary data (0x80-0xFF) ✅
+- CRLF sequences in binary data ✅
 
 See [docs/upstream/TRACKING.md](docs/upstream/TRACKING.md) for full analysis.
 
