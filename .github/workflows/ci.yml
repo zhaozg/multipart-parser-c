@@ -33,7 +33,7 @@ jobs:
       
       - name: Build tests
         run: |
-          make test_basic test_binary test_rfc test_issue13
+          make test_bin
       
       - name: Run tests
         run: |
@@ -41,7 +41,7 @@ jobs:
       
       - name: Build performance tests
         run: |
-          make test_performance
+          make benchmark_bin
       
       - name: Run performance benchmarks
         run: |
@@ -64,23 +64,14 @@ jobs:
         run: |
           make clean
           CFLAGS="-std=c89 -ansi -pedantic -g -O1 -fsanitize=address -fno-omit-frame-pointer -Wall" \
-            make test_basic test_binary test_rfc test_issue13
+            make test_bin
       
       - name: Run tests with AddressSanitizer
         env:
           ASAN_OPTIONS: detect_leaks=1:check_initialization_order=1:strict_init_order=1
         run: |
-          echo "Running basic tests with ASAN..."
-          ./test_basic
-          echo ""
-          echo "Running binary data tests with ASAN..."
-          ./test_binary
-          echo ""
-          echo "Running RFC tests with ASAN..."
-          ./test_rfc
-          echo ""
-          echo "Running Issue #13 test with ASAN..."
-          ./test_issue13
+          echo "Running tests with ASAN..."
+          ./test
       
       - name: Summary
         if: success()
@@ -107,14 +98,14 @@ jobs:
         run: |
           make clean
           CFLAGS="-std=c89 -ansi -pedantic -g -O1 -fsanitize=undefined -fno-omit-frame-pointer -Wall" \
-            make test_basic test_binary test_rfc test_issue13
+            make test_bin
       
       - name: Run tests with UBSan
         env:
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: |
           echo "Running tests with UndefinedBehaviorSanitizer..."
-          ./test_basic && ./test_binary && ./test_rfc && ./test_issue13
+          ./test
       
       - name: Summary
         if: success()
@@ -140,9 +131,9 @@ jobs:
         run: |
           make clean
           CFLAGS="-std=c89 -ansi -pedantic -g -O0 -Wall" \
-            make test_basic test_binary test_rfc test_issue13
+            make test_bin
       
-      - name: Run Valgrind memcheck on basic tests
+      - name: Run Valgrind memcheck on tests
         run: |
           valgrind --tool=memcheck \
             --leak-check=full \
@@ -150,40 +141,7 @@ jobs:
             --track-origins=yes \
             --error-exitcode=1 \
             --suppressions=.valgrind.suppressions \
-            ./test_basic 2>&1 | tee valgrind-basic.log
-        continue-on-error: true
-      
-      - name: Run Valgrind memcheck on binary tests
-        run: |
-          valgrind --tool=memcheck \
-            --leak-check=full \
-            --show-leak-kinds=all \
-            --track-origins=yes \
-            --error-exitcode=1 \
-            --suppressions=.valgrind.suppressions \
-            ./test_binary 2>&1 | tee valgrind-binary.log
-        continue-on-error: true
-      
-      - name: Run Valgrind memcheck on RFC tests
-        run: |
-          valgrind --tool=memcheck \
-            --leak-check=full \
-            --show-leak-kinds=all \
-            --track-origins=yes \
-            --error-exitcode=1 \
-            --suppressions=.valgrind.suppressions \
-            ./test_rfc 2>&1 | tee valgrind-rfc.log
-        continue-on-error: true
-      
-      - name: Run Valgrind memcheck on Issue #13 test
-        run: |
-          valgrind --tool=memcheck \
-            --leak-check=full \
-            --show-leak-kinds=all \
-            --track-origins=yes \
-            --error-exitcode=1 \
-            --suppressions=.valgrind.suppressions \
-            ./test_issue13 2>&1 | tee valgrind-issue13.log
+            ./test 2>&1 | tee valgrind-test.log
         continue-on-error: true
       
       - name: Check for Valgrind errors
@@ -247,18 +205,15 @@ jobs:
         run: |
           make clean
           CFLAGS="-std=c89 -ansi -pedantic -g -O0 --coverage -fprofile-arcs -ftest-coverage -Wall" \
-            make test_basic test_binary test_rfc test_issue13
+            make test_bin
       
       - name: Run tests
         run: |
-          ./test_basic
-          ./test_binary
-          ./test_rfc
-          ./test_issue13
+          ./test
       
       - name: Generate coverage report with gcov
         run: |
-          gcov -o . multipart_parser.c test_basic.c test_binary.c test_rfc.c test_issue13.c || true
+          gcov -o . multipart_parser.c test.c || true
           ls -la *.gcov 2>/dev/null || echo "No .gcov files generated yet"
       
       - name: Generate coverage report with lcov
@@ -329,7 +284,7 @@ jobs:
         run: |
           make clean
           CFLAGS="-std=c89 -ansi -pedantic -g -O2 -Wall" \
-            make test_performance
+            make benchmark_bin
       
       - name: Run Callgrind profiling
         run: |
@@ -337,7 +292,7 @@ jobs:
             --callgrind-out-file=callgrind.out \
             --dump-instr=yes \
             --collect-jumps=yes \
-            ./test_performance 2>&1 | tee callgrind.log
+            ./benchmark 2>&1 | tee callgrind.log
       
       - name: Generate callgrind report
         run: |
@@ -395,13 +350,13 @@ jobs:
         run: |
           make clean
           CFLAGS="-std=c89 -ansi -pedantic -g -O2 -Wall" \
-            make test_performance
+            make benchmark_bin
       
       - name: Run Cachegrind profiling
         run: |
           valgrind --tool=cachegrind \
             --cachegrind-out-file=cachegrind.out \
-            ./test_performance 2>&1 | tee cachegrind.log
+            ./benchmark 2>&1 | tee cachegrind.log
       
       - name: Generate cachegrind report
         run: |

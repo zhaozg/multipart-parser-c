@@ -1,8 +1,8 @@
 *.o
 *.so
 *.a
-test_*
-!test_*.c
+test
+benchmark
 *.dSYM/
 *.out
 .vscode/
@@ -12,3 +12,14 @@ test_*
 *~
 core
 vgcore.*
+*.gcda
+*.gcno
+*.gcov
+coverage.info
+coverage.txt
+coverage.xml
+coverage-html/
+callgrind.out*
+cachegrind.out*
+massif.out*
+valgrind-*.log
