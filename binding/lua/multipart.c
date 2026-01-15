@@ -77,7 +77,7 @@ static int on_header_field_cb(multipart_parser *p, const char *at, size_t length
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -99,7 +99,7 @@ static int on_header_value_cb(multipart_parser *p, const char *at, size_t length
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -121,7 +121,7 @@ static int on_part_data_cb(multipart_parser *p, const char *at, size_t length) {
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -142,7 +142,7 @@ static int on_part_data_begin_cb(multipart_parser *p) {
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -163,7 +163,7 @@ static int on_headers_complete_cb(multipart_parser *p) {
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -184,7 +184,7 @@ static int on_part_data_end_cb(multipart_parser *p) {
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -205,7 +205,7 @@ static int on_body_end_cb(multipart_parser *p) {
         return -1;
     }
     
-    result = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0;
+    result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
 }
@@ -346,9 +346,111 @@ static const luaL_Reg parser_methods[] = {
     {NULL, NULL}
 };
 
+/* ========================================================================
+ * Simple/Fast Parse Interface (uvs_multipart_parse compatible)
+ * ======================================================================== */
+
+/* Simple callback: read header field name */
+static int simple_read_header_field(multipart_parser *p, const char *at, size_t length) {
+    lua_State *L = (lua_State *)multipart_parser_get_data(p);
+    lua_pushlstring(L, at, length);
+    return 0;
+}
+
+/* Simple callback: read header value and store key-value pair */
+static int simple_read_header_value(multipart_parser *p, const char *at, size_t length) {
+    lua_State *L = (lua_State *)multipart_parser_get_data(p);
+    lua_pushlstring(L, at, length);
+    lua_rawset(L, -3);
+    return 0;
+}
+
+/* Simple callback: read part data and append to array */
+static int simple_read_part_data(multipart_parser *p, const char *at, size_t length) {
+    lua_State *L = (lua_State *)multipart_parser_get_data(p);
+    size_t idx;
+    idx = lua_rawlen(L, -1);
+    lua_pushlstring(L, at, length);
+    lua_rawseti(L, -2, idx + 1);
+    return 0;
+}
+
+/* Simple callback: begin new part - create table for it */
+static int simple_on_part_data_begin(multipart_parser *p) {
+    lua_State *L = (lua_State *)multipart_parser_get_data(p);
+    lua_createtable(L, 8, 16);
+    return 0;
+}
+
+/* Simple callback: end part - add to parts array */
+static int simple_on_part_data_end(multipart_parser *p) {
+    lua_State *L = (lua_State *)multipart_parser_get_data(p);
+    size_t idx;
+    idx = lua_rawlen(L, -2);
+    lua_rawseti(L, -2, idx + 1);
+    return 0;
+}
+
+/* Simple parse function: multipart_parser.parse(boundary, body) -> table or (nil, error) */
+static int lmp_parse(lua_State *L) {
+    const char *boundary;
+    const char *body;
+    size_t length;
+    multipart_parser *parser;
+    multipart_parser_settings settings;
+    size_t parsed;
+    
+    /* Get arguments */
+    boundary = luaL_checkstring(L, 1);
+    body = luaL_checklstring(L, 2, &length);
+    
+    /* Setup simple callbacks */
+    memset(&settings, 0, sizeof(multipart_parser_settings));
+    settings.on_header_field = simple_read_header_field;
+    settings.on_header_value = simple_read_header_value;
+    settings.on_part_data = simple_read_part_data;
+    settings.on_part_data_begin = simple_on_part_data_begin;
+    settings.on_part_data_end = simple_on_part_data_end;
+    
+    /* Create parser */
+    parser = multipart_parser_init(boundary, &settings);
+    if (!parser) {
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to initialize parser");
+        return 2;
+    }
+    
+    /* Set Lua state as user data */
+    multipart_parser_set_data(parser, L);
+    
+    /* Create result table */
+    lua_createtable(L, 4, 4);
+    
+    /* Parse */
+    parsed = multipart_parser_execute(parser, body, length);
+    
+    /* Check result */
+    if (parsed == length) {
+        /* Success - result table is on stack */
+        multipart_parser_free(parser);
+        return 1;
+    } else {
+        /* Error - return nil and error position */
+        const char *errmsg = multipart_parser_get_error_message(parser);
+        
+        multipart_parser_free(parser);
+        
+        lua_pop(L, 1); /* Pop result table */
+        lua_pushnil(L);
+        lua_pushfstring(L, "%s (at position %d)", errmsg, (int)parsed);
+        return 2;
+    }
+}
+
 /* Module functions */
 static const luaL_Reg module_funcs[] = {
     {"new", lmp_new},
+    {"parse", lmp_parse},
     {NULL, NULL}
 };
 

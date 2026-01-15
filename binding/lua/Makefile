@@ -25,7 +25,7 @@ LDFLAGS = -shared
 LIBS = $(LUA_LIBS)
 
 # Source files
-SRCS = multipart_parser.c ../../multipart_parser.c
+SRCS = multipart.c ../../multipart_parser.c
 TARGET = multipart_parser.so
 
 # Build target
