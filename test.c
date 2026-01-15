@@ -1222,8 +1222,8 @@ void test_long_header_value(void) {
     }
     long_value[1000] = '\0';
     
-    /* Build multipart data with long header */
-    sprintf(data, "--bound\r\nContent-Type: %s\r\n\r\ndata\r\n--bound--", long_value);
+    /* Build multipart data with long header - use snprintf for safety */
+    snprintf(data, sizeof(data), "--bound\r\nContent-Type: %s\r\n\r\ndata\r\n--bound--", long_value);
     
     memset(&callbacks, 0, sizeof(multipart_parser_settings));
     parser = multipart_parser_init(boundary, &callbacks);
