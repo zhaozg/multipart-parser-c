@@ -12,9 +12,9 @@
 
 **Achievements**:
 - ✅ **memchr() batch scanning**: 30-40% throughput improvement
-  - Small messages: 352 → 437 MB/s (+24%)
-  - Large messages: 440 → 618 MB/s (+41%)
-  - Chunked parsing: 2.2M → 6.7M parses/sec (+31%)
+  - Small messages: 352 → 437 MB/s (+24.1%)
+  - Large messages: 440 → 618 MB/s (+40.5%)
+  - Chunked parsing: 2.2M → 6.7M parses/sec (+31.4%)
 - ✅ **Enhanced benchmarks**: Callback tracking and granularity metrics
 - ✅ **CMake build system**: Cross-platform support (Linux/macOS/Windows)
 - ✅ **Fuzzing infrastructure**: AFL++/libFuzzer harness with corpus
