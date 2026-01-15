@@ -286,7 +286,7 @@ int on_part_data_binary(multipart_parser* p, const char *at, size_t length) {
     return 0;
 }
 
-/* Test 2.1: Binary data with CR characters - KNOWN ISSUE #33 */
+/* Test 2.1: Binary data with CR characters - RFC 2046 compliant */
 void test_binary_with_cr(void) {
     const char *boundary = "testbound";
     /* Binary data containing CR (0x0D) but not as part of CRLF */
@@ -297,20 +297,22 @@ void test_binary_with_cr(void) {
     binary_test_data test_data;
     size_t parsed;
     
-    TEST_START("Binary data with embedded CR (Issue #33)");
+    TEST_START("Binary data with embedded CR (RFC 2046 compliant)");
     
     /* Build test data: boundary + headers + binary data with CR */
     pos = 0;
     memcpy(data + pos, "--testbound\r\n", 13);
     pos += 13;
-    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
-    pos += 41;
+    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 40);
+    pos += 40;
     memcpy(data + pos, "\r\n", 2);
     pos += 2;
-    /* Add binary data: 0x01 0x02 0x0D 0x03 0x04 */
+    /* Add binary data: 0x01 0x02 0x0D 0x03 0x04 
+     * The 0x0D (CR) is not followed by LF, so per RFC 2046 it should be
+     * treated as data, not as the start of a boundary marker. */
     data[pos++] = 0x01;
     data[pos++] = 0x02;
-    data[pos++] = 0x0D; /* CR not followed by LF */
+    data[pos++] = 0x0D; /* CR not followed by LF - valid binary data */
     data[pos++] = 0x03;
     data[pos++] = 0x04;
     
@@ -335,13 +337,13 @@ void test_binary_with_cr(void) {
         return;
     }
     
-    /* This is a known limitation - CR in binary data may not be handled correctly
-     * due to boundary detection logic. See Issue #33 and SECURITY_IMPROVEMENTS.md */
+    /* RFC 2046: Parser correctly handles isolated CR in binary data.
+     * The implementation buffers CR and emits it as data if not followed by LF,
+     * which is the correct RFC-compliant behavior. Previously marked as Issue #33,
+     * but the issue was a test bug (incorrect memcpy length), not a parser bug. */
     if (test_data.callback_count == 0) {
         multipart_parser_free(parser);
-        printf("KNOWN ISSUE (Issue #33)\n");
-        /* Don't fail the test - this is documented behavior */
-        test_passed++;
+        TEST_FAIL("No data received - parser should handle isolated CR");
         return;
     }
     
@@ -365,8 +367,8 @@ void test_binary_with_null(void) {
     pos = 0;
     memcpy(data + pos, "--nulltest\r\n", 12);
     pos += 12;
-    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
-    pos += 41;
+    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 40);
+    pos += 40;
     memcpy(data + pos, "\r\n", 2);
     pos += 2;
     /* Add binary data with NULL bytes: 0x01 0x00 0x02 0x00 0x03 */
@@ -417,8 +419,8 @@ void test_binary_with_boundary_like_data(void) {
     pos = 0;
     memcpy(data + pos, "--xyz123\r\n", 10);
     pos += 10;
-    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
-    pos += 41;
+    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 40);
+    pos += 40;
     memcpy(data + pos, "\r\n", 2);
     pos += 2;
     /* Add data that looks like boundary but isn't: "xyz" (partial match) */
@@ -527,8 +529,8 @@ void test_binary_all_zeros(void) {
     pos = 0;
     memcpy(data + pos, "--zeros\r\n", 9);
     pos += 9;
-    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
-    pos += 41;
+    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 40);
+    pos += 40;
     memcpy(data + pos, "\r\n", 2);
     pos += 2;
     /* Add 10 zero bytes */
@@ -577,8 +579,8 @@ void test_binary_with_crlf_sequences(void) {
     pos = 0;
     memcpy(data + pos, "--crlftest\r\n", 12);
     pos += 12;
-    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 41);
-    pos += 41;
+    memcpy(data + pos, "Content-Type: application/octet-stream\r\n", 40);
+    pos += 40;
     memcpy(data + pos, "\r\n", 2);
     pos += 2;
     /* Add binary data with CRLF: 0x01 \r\n 0x02 \r\n 0x03 */
