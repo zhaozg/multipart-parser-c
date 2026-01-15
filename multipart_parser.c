@@ -35,9 +35,17 @@ do {                                                                   \
 #define EMIT_DATA_CB(FOR, ptr, len)                                    \
 do {                                                                   \
   if (p->settings->on_##FOR) {                                         \
-    if (p->settings->on_##FOR(p, ptr, len) != 0) {                     \
-      p->error = MPPE_PAUSED;                                          \
-      return i;                                                        \
+    if (p->settings->buffer_size > 0 && p->FOR##_buffer) {             \
+      if (buffer_or_emit(p, p->settings->on_##FOR,                     \
+                         &p->FOR##_buffer, &p->FOR##_buffer_len,       \
+                         ptr, len) != 0) {                             \
+        return i;                                                      \
+      }                                                                \
+    } else {                                                           \
+      if (p->settings->on_##FOR(p, ptr, len) != 0) {                   \
+        p->error = MPPE_PAUSED;                                        \
+        return i;                                                      \
+      }                                                                \
     }                                                                  \
   }                                                                    \
 } while (0)
@@ -56,6 +64,14 @@ struct multipart_parser {
   multipart_parser_error error;  /* Last error code */
 
   const multipart_parser_settings* settings;
+  
+  /* Buffering support for data callbacks */
+  char* header_field_buffer;
+  size_t header_field_buffer_len;
+  char* header_value_buffer;
+  size_t header_value_buffer_len;
+  char* part_data_buffer;
+  size_t part_data_buffer_len;
 
   char* lookbehind;
   char multipart_boundary[1];
@@ -85,10 +101,15 @@ enum state {
 
 multipart_parser* multipart_parser_init
     (const char *boundary, const multipart_parser_settings* settings) {
+  size_t buffer_size;
+  multipart_parser* p;
+  
+  buffer_size = (settings && settings->buffer_size > 0) ? settings->buffer_size : 0;
 
-  multipart_parser* p = malloc(sizeof(multipart_parser) +
-                               strlen(boundary) +
-                               strlen(boundary) + 9);
+  p = malloc(sizeof(multipart_parser) +
+             strlen(boundary) +
+             strlen(boundary) + 9 +
+             (buffer_size > 0 ? (buffer_size * 3) : 0));  /* 3 buffers if buffering enabled */
 
   if (p == NULL) {
     return NULL;
@@ -98,6 +119,21 @@ multipart_parser* multipart_parser_init
   p->boundary_length = strlen(boundary);
   
   p->lookbehind = (p->multipart_boundary + p->boundary_length + 1);
+  
+  /* Initialize buffer pointers */
+  if (buffer_size > 0) {
+    p->header_field_buffer = p->lookbehind + p->boundary_length + 8;
+    p->header_value_buffer = p->header_field_buffer + buffer_size;
+    p->part_data_buffer = p->header_value_buffer + buffer_size;
+  } else {
+    p->header_field_buffer = NULL;
+    p->header_value_buffer = NULL;
+    p->part_data_buffer = NULL;
+  }
+  
+  p->header_field_buffer_len = 0;
+  p->header_value_buffer_len = 0;
+  p->part_data_buffer_len = 0;
 
   p->index = 0;
   p->state = s_start;
@@ -105,6 +141,64 @@ multipart_parser* multipart_parser_init
   p->error = MPPE_OK;  /* Initialize error state */
 
   return p;
+}
+
+/* Helper function to flush buffered data */
+static int flush_buffer(multipart_parser* p, multipart_data_cb callback, 
+                        char** buffer, size_t* buffer_len) {
+  int result = 0;
+  if (*buffer_len > 0 && callback) {
+    result = callback(p, *buffer, *buffer_len);
+    *buffer_len = 0;
+  }
+  return result;
+}
+
+/* Helper function to append data to buffer or emit immediately */
+static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
+                          char** buffer, size_t* buffer_len,
+                          const char* data, size_t len) {
+  size_t buffer_size = p->settings->buffer_size;
+  
+  /* If buffering disabled or no buffer, emit immediately */
+  if (buffer_size == 0 || *buffer == NULL) {
+    if (callback && callback(p, data, len) != 0) {
+      p->error = MPPE_PAUSED;
+      return 1;
+    }
+    return 0;
+  }
+  
+  /* Try to buffer the data */
+  if (*buffer_len + len <= buffer_size) {
+    /* Fits in buffer */
+    memcpy(*buffer + *buffer_len, data, len);
+    *buffer_len += len;
+    return 0;
+  }
+  
+  /* Buffer would overflow - flush current buffer and handle new data */
+  if (*buffer_len > 0) {
+    if (callback && callback(p, *buffer, *buffer_len) != 0) {
+      p->error = MPPE_PAUSED;
+      return 1;
+    }
+    *buffer_len = 0;
+  }
+  
+  /* If new data fits in empty buffer, buffer it */
+  if (len <= buffer_size) {
+    memcpy(*buffer, data, len);
+    *buffer_len = len;
+    return 0;
+  }
+  
+  /* Data too large for buffer, emit directly */
+  if (callback && callback(p, data, len) != 0) {
+    p->error = MPPE_PAUSED;
+    return 1;
+  }
+  return 0;
 }
 
 void multipart_parser_free(multipart_parser* p) {
@@ -295,6 +389,15 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
 
       case s_part_data_start:
         multipart_log("s_part_data_start");
+        /* Flush header buffers before starting part data */
+        if (flush_buffer(p, p->settings->on_header_field, &p->header_field_buffer, &p->header_field_buffer_len) != 0) {
+          p->error = MPPE_PAUSED;
+          return i;
+        }
+        if (flush_buffer(p, p->settings->on_header_value, &p->header_value_buffer, &p->header_value_buffer_len) != 0) {
+          p->error = MPPE_PAUSED;
+          return i;
+        }
         NOTIFY_CB(headers_complete);
         mark = i;
         p->state = s_part_data;
@@ -389,6 +492,11 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
         }
         p->lookbehind[2 + p->index] = c;
         if ((++ p->index) == (p->boundary_length + 2)) {
+            /* Flush part data buffer before ending part */
+            if (flush_buffer(p, p->settings->on_part_data, &p->part_data_buffer, &p->part_data_buffer_len) != 0) {
+              p->error = MPPE_PAUSED;
+              return i;
+            }
             NOTIFY_CB(part_data_end);
             p->state = s_part_data_almost_end;
         }
@@ -410,6 +518,11 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
       case s_part_data_final_hyphen:
         multipart_log("s_part_data_final_hyphen");
         if (c == '-') {
+            /* Flush part data buffer before body end */
+            if (flush_buffer(p, p->settings->on_part_data, &p->part_data_buffer, &p->part_data_buffer_len) != 0) {
+              p->error = MPPE_PAUSED;
+              return i;
+            }
             NOTIFY_CB(body_end);
             p->state = s_end;
             break;
@@ -420,6 +533,11 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
       case s_part_data_end:
         multipart_log("s_part_data_end");
         if (c == LF) {
+            /* Flush part data buffer before starting new part */
+            if (flush_buffer(p, p->settings->on_part_data, &p->part_data_buffer, &p->part_data_buffer_len) != 0) {
+              p->error = MPPE_PAUSED;
+              return i;
+            }
             p->state = s_header_field_start;
             NOTIFY_CB(part_data_begin);
             break;

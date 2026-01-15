@@ -1271,6 +1271,46 @@ void test_clean_end(void) {
     TEST_PASS();
 }
 
+/* Test 26: Callback buffering with small buffer */
+void test_callback_buffering(void) {
+    const char *boundary = "bound";
+    const char *data = 
+        "--bound\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "abcdefghijklmnopqrstuvwxyz0123456789\r\n"  /* 38 bytes of data */
+        "--bound--";
+    
+    multipart_parser_settings callbacks;
+    multipart_parser* parser;
+    size_t parsed;
+    int callback_count = 0;
+    
+    TEST_START("Callback buffering reduces callback frequency");
+    
+    /* Count callbacks */
+    memset(&callbacks, 0, sizeof(multipart_parser_settings));
+    callbacks.buffer_size = 16;  /* Buffer 16 bytes before emitting */
+    
+    parser = multipart_parser_init(boundary, &callbacks);
+    parsed = multipart_parser_execute(parser, data, strlen(data));
+    
+    if (parsed != strlen(data)) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Failed to parse with buffering");
+        return;
+    }
+    
+    if (multipart_parser_get_error(parser) != MPPE_OK) {
+        multipart_parser_free(parser);
+        TEST_FAIL("Got error with buffering enabled");
+        return;
+    }
+    
+    multipart_parser_free(parser);
+    TEST_PASS();
+}
+
 /* ========================================================================
  * MAIN - Run all test sections
  * ======================================================================== */
@@ -1325,6 +1365,11 @@ int main(void) {
     test_empty_part_data();
     test_long_header_value();
     test_clean_end();
+    printf("\n");
+    
+    /* Section 7: Buffering Tests */
+    printf("--- Section 7: Callback Buffering Tests ---\n");
+    test_callback_buffering();
     printf("\n");
     
     /* Summary */

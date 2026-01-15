@@ -71,6 +71,8 @@ struct multipart_parser_settings {
   multipart_notify_cb on_headers_complete; /**< Called when headers are complete */
   multipart_notify_cb on_part_data_end;   /**< Called when a part ends */
   multipart_notify_cb on_body_end;        /**< Called when the entire body ends */
+  
+  size_t buffer_size;                     /**< Buffer size for data callbacks (0 = no buffering) */
 };
 
 /**
