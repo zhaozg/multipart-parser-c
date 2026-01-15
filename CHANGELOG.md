@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Multiple parts parsing
   - Preamble handling
   - Empty parts
+- **Issue #13 regression test** (`test_issue13.c`):
+  - Verifies header value callback is not called twice with 1-byte feeding
+  - Confirms CR character is not leaked into header values
 - Comprehensive test suite (`test_basic.c`) with 7 tests covering:
   - Parser initialization and cleanup
   - Malloc failure handling
@@ -63,6 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PR #24** (upstream): Added missing `va_end()` in `multipart_log()`
   - Required by C standard for proper cleanup
   - Prevents potential resource leaks in debug builds
+- **Issue #13** (upstream): Header value double callback with 1-byte feeding
+  - Already fixed in this fork with proper `break` statement
+  - Test added to prevent regression
+  - Upstream still has this bug
 
 ### Security
 - ✅ Passed CodeQL security scan with 0 vulnerabilities
@@ -80,12 +87,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete security analysis
 - Performance baselines for future optimizations
 - RFC 2046 compliance and migration guide
+- **Issue #27 clarification**: Not a parser bug - Guide added for proper header value parsing in user code
+  - See `docs/HEADER_PARSING_GUIDE.md` for RFC 2183 compliant implementations
+  - Explains how to handle filenames with spaces correctly
+  - Provides example code for Content-Disposition parsing
 
 ### Testing Summary
-- **Total**: 17 functional tests + 4 performance benchmarks
+- **Total**: 18 functional tests + 4 performance benchmarks
 - **Basic tests**: 7/7 passing ✅
 - **Binary tests**: 6/6 passing ✅ (Issue #33 edge case documented)
 - **RFC compliance**: 4/4 passing ✅
+- **Regression tests**: 1/1 passing ✅ (Issue #13)
 - **Benchmarks**: All complete ✅
 - **Security scan**: 0 vulnerabilities ✅
 
@@ -93,9 +105,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ **Issue #20**: RFC boundary format compliance - FIXED
 - ✅ **Issue #28**: RFC compliant boundary processing - IMPLEMENTED
 - ✅ **Issue #33**: Binary data handling - IMPROVED (edge case documented)
+- ✅ **Issue #13**: Header value double callback - FIXED (already in code, test added)
+- ✅ **Issue #27**: Filename with spaces - CLARIFIED (not a parser bug, documentation added)
 
 ### Planned
-- Fix Issue #27: Filenames with spaces support (upstream)
+- ~~Fix Issue #27: Filenames with spaces support (upstream)~~ **RESOLVED** - Documentation added
 
 ## [Previous Versions]
 

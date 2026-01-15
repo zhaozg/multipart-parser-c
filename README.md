@@ -99,6 +99,7 @@ We maintain systematic tracking of upstream issues and pull requests:
 - **[UPSTREAM_TRACKING.md](UPSTREAM_TRACKING.md)** - Main tracking document with recommendations
 - **[docs/PR_ANALYSIS.md](docs/PR_ANALYSIS.md)** - Detailed analysis of upstream PRs
 - **[docs/ISSUES_TRACKING.md](docs/ISSUES_TRACKING.md)** - Comprehensive issue tracking
+- **[docs/HEADER_PARSING_GUIDE.md](docs/HEADER_PARSING_GUIDE.md)** - Guide for parsing header values (e.g., filenames with spaces)
 
 #### Quick Status
 

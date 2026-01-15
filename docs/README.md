@@ -28,20 +28,28 @@ Comprehensive tracking of upstream issues:
 - Action plans
 - Timeline recommendations
 
+### [HEADER_PARSING_GUIDE.md](HEADER_PARSING_GUIDE.md)
+Guide for parsing header values in user code:
+- How to correctly parse Content-Disposition headers
+- Handling filenames with spaces (Issue #27 context)
+- RFC 2183 compliant implementation examples
+- Common pitfalls and solutions
+
 ## Quick Reference
 
 ### Ready to Merge (Safe)
-- **PR #29**: Check malloc result ✅
-- **PR #24**: Fix va_end ✅
+- **PR #29**: Check malloc result ✅ (MERGED in this fork)
+- **PR #24**: Fix va_end ✅ (MERGED in this fork)
+
+### Resolved in This Fork
+- **PR #28**: RFC boundary compliance ✅ (IMPLEMENTED)
+- **Issue #20**: RFC compliance ✅ (FIXED)
+- **Issue #33**: Binary data handling ✅ (Tested & Documented)
+- **Issue #27**: Filenames with spaces ✅ (Documentation added)
+- **Issue #13**: Header callback bug ✅ (Already fixed, test added)
 
 ### Needs Review
-- **PR #28**: RFC boundary compliance ⚠️
 - **PR #25**: Fix CR in data ⚠️
-
-### Critical Issues
-- **Issue #33**: Binary data handling 🔴
-- **Issue #20**: RFC compliance 🟡
-- **Issue #27**: Filenames with spaces 🟡
 
 ## Update Process
 
