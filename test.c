@@ -1523,21 +1523,11 @@ void test_reset_clears_error(void) {
 /* Test 9.1: Multiple files with same field name (RFC 7578 Section 4.3) */
 typedef struct {
     int part_count;
-    int file_count;
 } rfc7578_test_data;
 
 int on_part_begin_rfc7578(multipart_parser* p) {
     rfc7578_test_data* data = (rfc7578_test_data*)multipart_parser_get_data(p);
     data->part_count++;
-    return 0;
-}
-
-int on_header_value_rfc7578(multipart_parser* p, const char *at, size_t length) {
-    rfc7578_test_data* data = (rfc7578_test_data*)multipart_parser_get_data(p);
-    /* Count "filename=" occurrences as files */
-    if (length > 9 && strncmp(at, "filename=", 9) == 0) {
-        data->file_count++;
-    }
     return 0;
 }
 
@@ -1571,7 +1561,6 @@ void test_rfc7578_multiple_files_same_name(void) {
 
     memset(&callbacks, 0, sizeof(multipart_parser_settings));
     callbacks.on_part_data_begin = on_part_begin_rfc7578;
-    callbacks.on_header_value = on_header_value_rfc7578;
 
     memset(&test_data, 0, sizeof(rfc7578_test_data));
 
