@@ -56,6 +56,34 @@ multipart_parser_execute(parser, body, length);
 multipart_parser_free(parser);
 ```
 
+#### Parser Reuse
+
+You can reuse a parser instance to parse multiple multipart messages by calling `multipart_parser_reset()`. This is more efficient than creating a new parser for each message:
+
+```c
+multipart_parser* parser = multipart_parser_init(boundary1, &callbacks);
+
+/* Parse first message */
+multipart_parser_execute(parser, body1, length1);
+
+/* Reset for second message with different boundary */
+multipart_parser_reset(parser, boundary2);
+multipart_parser_execute(parser, body2, length2);
+
+/* Reset for third message keeping same boundary */
+multipart_parser_reset(parser, NULL);
+multipart_parser_execute(parser, body3, length3);
+
+multipart_parser_free(parser);
+```
+
+The `multipart_parser_reset()` function:
+- Resets the parser state to start parsing a new message
+- Clears any error state from previous parsing
+- Optionally updates the boundary string (if not NULL)
+- Returns 0 on success, -1 if the new boundary is too long
+- Preserves callback settings and user data pointer
+
 ### Usage (C++)
 In C++, when the callbacks are static member functions it may be helpful to pass the instantiated multipart consumer along as context.  The following (abbreviated) class called `MultipartConsumer` shows how to pass `this` to callback functions in order to access non-static member data.
 
