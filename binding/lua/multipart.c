@@ -318,6 +318,35 @@ static int lmp_get_error_message(lua_State *L) {
     return 1;
 }
 
+/* Lua API: parser:reset(boundary) */
+static int lmp_reset(lua_State *L) {
+    lua_multipart_parser *lmp;
+    const char *boundary;
+    int result;
+
+    lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
+    
+    if (!lmp->parser) {
+        return luaL_error(L, "Parser already freed");
+    }
+
+    /* Get new boundary (optional - if nil, keeps existing boundary) */
+    if (lua_isnoneornil(L, 2)) {
+        boundary = NULL;
+    } else {
+        boundary = luaL_checkstring(L, 2);
+    }
+
+    result = multipart_parser_reset(lmp->parser, boundary);
+
+    if (result != 0) {
+        return luaL_error(L, "Failed to reset parser: new boundary too long");
+    }
+
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
 /* Lua API: parser:free() */
 static int lmp_free(lua_State *L) {
     lua_multipart_parser *lmp;
@@ -342,6 +371,7 @@ static const luaL_Reg parser_methods[] = {
     {"execute", lmp_execute},
     {"get_error", lmp_get_error},
     {"get_error_message", lmp_get_error_message},
+    {"reset", lmp_reset},
     {"free", lmp_free},
     {NULL, NULL}
 };

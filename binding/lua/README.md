@@ -377,6 +377,40 @@ local msg = parser:get_error_message()
 print("Error: " .. msg)
 ```
 
+#### `parser:reset([boundary])`
+
+Reset the parser to parse a new multipart message. This allows reusing the same parser instance for multiple messages, which is more efficient than creating a new parser each time.
+
+**Parameters:**
+- `boundary` (string, optional): New boundary string (without "--" prefix). If omitted or `nil`, keeps the existing boundary.
+
+**Returns:**
+- `true` on success, raises error if new boundary is too long
+
+**Example:**
+```lua
+local parser = mp.new("boundary1", callbacks)
+
+-- Parse first message
+parser:execute(data1)
+
+-- Reset with new boundary for second message
+parser:reset("boundary2")
+parser:execute(data2)
+
+-- Reset keeping same boundary for third message
+parser:reset()  -- or parser:reset(nil)
+parser:execute(data3)
+
+parser:free()
+```
+
+**Notes:**
+- Resets parser state to start parsing a new message
+- Clears any error state from previous parsing
+- Preserves callback settings and user data
+- The new boundary (if provided) cannot be longer than the original boundary
+
 #### `parser:free()`
 
 Free parser resources. Called automatically by garbage collector.

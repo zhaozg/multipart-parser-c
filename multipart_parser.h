@@ -165,6 +165,28 @@ multipart_parser_error multipart_parser_get_error(multipart_parser* p);
  */
 const char* multipart_parser_get_error_message(multipart_parser* p);
 
+/**
+ * @brief Reset a multipart parser for reuse
+ *
+ * Resets the parser state to allow reusing the same parser instance with
+ * a new boundary string. This is useful when you need to parse multiple
+ * multipart messages with different boundaries using the same parser object.
+ *
+ * The parser's internal state, buffers, and error state are reset. If a new
+ * boundary is provided, it must fit within the originally allocated memory
+ * (i.e., the new boundary cannot be longer than the original boundary).
+ *
+ * @param p Pointer to the parser to reset
+ * @param boundary The new boundary string (without "--" prefix), or NULL to
+ *                 keep the existing boundary
+ * @return 0 on success, -1 if the new boundary is too long
+ *
+ * @note The settings callbacks remain unchanged
+ * @note The user data pointer is preserved
+ * @see multipart_parser_init()
+ */
+int multipart_parser_reset(multipart_parser* p, const char *boundary);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -760,7 +760,194 @@ local function test_parse_binary()
     test_pass()
 end
 
--- Test 20: Parse performance comparison
+-- Test 21: Parser reset with new boundary
+local function test_parser_reset()
+    test_start("Parser reset with new boundary")
+    
+    local part_count1 = 0
+    local part_count2 = 0
+    
+    local callbacks1 = {
+        on_part_data_end = function()
+            part_count1 = part_count1 + 1
+            return 0
+        end
+    }
+    
+    local callbacks2 = {
+        on_part_data_end = function()
+            part_count2 = part_count2 + 1
+            return 0
+        end
+    }
+    
+    local parser = mp.new("boundary1", callbacks1)
+    local data1 = "--boundary1\r\n" ..
+                  "Content-Type: text/plain\r\n" ..
+                  "\r\n" ..
+                  "data1\r\n" ..
+                  "--boundary1--"
+    
+    -- Parse first data
+    local parsed1 = parser:execute(data1)
+    if parsed1 ~= #data1 then
+        test_fail("First parse failed")
+        parser:free()
+        return
+    end
+    
+    if part_count1 ~= 1 then
+        test_fail("Expected 1 part in first parse")
+        parser:free()
+        return
+    end
+    
+    -- Reset parser with new boundary
+    local reset_ok = parser:reset("boundary2")
+    if not reset_ok then
+        test_fail("Reset failed")
+        parser:free()
+        return
+    end
+    
+    -- Parse second data with new boundary
+    local data2 = "--boundary2\r\n" ..
+                  "Content-Type: text/plain\r\n" ..
+                  "\r\n" ..
+                  "data2\r\n" ..
+                  "--boundary2--"
+    
+    local parsed2 = parser:execute(data2)
+    if parsed2 ~= #data2 then
+        test_fail("Second parse after reset failed")
+        parser:free()
+        return
+    end
+    
+    -- Note: callbacks1 is still in use, so part_count1 will increment
+    if part_count1 ~= 2 then
+        test_fail("Expected 2 total parts after reset")
+        parser:free()
+        return
+    end
+    
+    parser:free()
+    test_pass()
+end
+
+-- Test 22: Parser reset without changing boundary
+local function test_parser_reset_same_boundary()
+    test_start("Parser reset keeping same boundary")
+    
+    local part_count = 0
+    
+    local callbacks = {
+        on_part_data_end = function()
+            part_count = part_count + 1
+            return 0
+        end
+    }
+    
+    local parser = mp.new("bound", callbacks)
+    local data = "--bound\r\n" ..
+                 "Content-Type: text/plain\r\n" ..
+                 "\r\n" ..
+                 "test\r\n" ..
+                 "--bound--"
+    
+    -- Parse first time
+    local parsed1 = parser:execute(data)
+    if parsed1 ~= #data then
+        test_fail("First parse failed")
+        parser:free()
+        return
+    end
+    
+    if part_count ~= 1 then
+        test_fail("Expected 1 part in first parse")
+        parser:free()
+        return
+    end
+    
+    -- Reset without changing boundary (pass nil)
+    local reset_ok = parser:reset(nil)
+    if not reset_ok then
+        test_fail("Reset failed")
+        parser:free()
+        return
+    end
+    
+    -- Parse second time
+    local parsed2 = parser:execute(data)
+    if parsed2 ~= #data then
+        test_fail("Second parse after reset failed")
+        parser:free()
+        return
+    end
+    
+    if part_count ~= 2 then
+        test_fail("Expected 2 total parts after reset")
+        parser:free()
+        return
+    end
+    
+    parser:free()
+    test_pass()
+end
+
+-- Test 23: Parser reset clears error state
+local function test_parser_reset_clears_error()
+    test_start("Parser reset clears error state")
+    
+    local parser = mp.new("bound")
+    
+    -- Parse bad data to trigger an error
+    local bad_data = "--bound\r\nContent@Type: text/plain\r\n"
+    parser:execute(bad_data)
+    
+    -- Should have an error
+    local err = parser:get_error()
+    if err == mp.ERROR.OK then
+        test_fail("Should have error after bad data")
+        parser:free()
+        return
+    end
+    
+    -- Reset parser
+    local reset_ok = parser:reset(nil)
+    if not reset_ok then
+        test_fail("Reset failed")
+        parser:free()
+        return
+    end
+    
+    -- Error should be cleared
+    err = parser:get_error()
+    if err ~= mp.ERROR.OK then
+        test_fail("Error not cleared after reset")
+        parser:free()
+        return
+    end
+    
+    -- Parse good data
+    local good_data = "--bound\r\n" ..
+                      "Content-Type: text/plain\r\n" ..
+                      "\r\n" ..
+                      "data\r\n" ..
+                      "--bound--"
+    
+    local parsed = parser:execute(good_data)
+    if parsed ~= #good_data then
+        test_fail("Parse failed after reset")
+        parser:free()
+        return
+    end
+    
+    parser:free()
+    test_pass()
+end
+
+-- Test 24: Parse function performance comparison
 local function test_parse_performance()
     test_start("Parse function performance")
     
@@ -816,6 +1003,12 @@ local function run_all_tests()
     test_parse_multidata()
     test_parse_errors()
     test_parse_binary()
+    
+    -- Parser reset tests
+    test_parser_reset()
+    test_parser_reset_same_boundary()
+    test_parser_reset_clears_error()
+    
     test_parse_performance()
     
     -- Print summary
