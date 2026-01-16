@@ -239,10 +239,17 @@ const char* multipart_parser_get_error_message(multipart_parser* p) {
 int multipart_parser_reset(multipart_parser* p, const char *boundary) {
     size_t new_boundary_length;
     
+    /* Validate parser pointer */
+    if (p == NULL) {
+        return -1;
+    }
+    
     if (boundary != NULL) {
         new_boundary_length = strlen(boundary);
         
-        /* Check if new boundary fits in allocated space */
+        /* Check if new boundary fits in allocated space
+         * The original allocation has space for the boundary plus lookbehind (boundary_length + 8)
+         * So we can accept any boundary up to and including the original length */
         if (new_boundary_length > p->boundary_length) {
             return -1;
         }

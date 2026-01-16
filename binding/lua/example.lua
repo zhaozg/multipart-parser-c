@@ -107,4 +107,58 @@ if result then
     print(string.format("Throughput: %.2f MB/s", (#body / 1024 / 1024) / elapsed))
 end
 
+-- Example 4: Parser reuse with reset
+print("\n\nExample 4: Parser reuse with reset")
+print("=" .. string.rep("=", 50))
+
+local part_count = 0
+local callbacks = {
+    on_part_data_end = function()
+        part_count = part_count + 1
+        return 0
+    end
+}
+
+-- Create parser with first boundary
+local parser = mp.new("boundary1", callbacks)
+
+-- Parse first message
+local data1 = "--boundary1\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Message 1\r\n" ..
+    "--boundary1--"
+
+parser:execute(data1)
+print(string.format("After first parse: %d part(s)", part_count))
+
+-- Reset parser with new boundary
+parser:reset("boundary2")
+
+-- Parse second message with different boundary
+local data2 = "--boundary2\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Message 2\r\n" ..
+    "--boundary2--"
+
+parser:execute(data2)
+print(string.format("After reset and second parse: %d part(s)", part_count))
+
+-- Reset again keeping same boundary
+parser:reset()  -- or parser:reset(nil)
+
+-- Parse third message
+local data3 = "--boundary2\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Message 3\r\n" ..
+    "--boundary2--"
+
+parser:execute(data3)
+print(string.format("After second reset and third parse: %d part(s)", part_count))
+print("✓ Parser reuse with reset works correctly!")
+
+parser:free()
+
 print("\n✓ All examples completed successfully!")

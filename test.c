@@ -1442,7 +1442,23 @@ void test_reset_boundary_too_long(void) {
     TEST_PASS();
 }
 
-/* Test 30: Parser reset clears error state */
+/* Test 30: Parser reset with NULL parser */
+void test_reset_null_parser(void) {
+    int reset_result;
+
+    TEST_START("Parser reset with NULL parser pointer");
+
+    /* Try to reset NULL parser - should fail safely */
+    reset_result = multipart_parser_reset(NULL, "boundary");
+    if (reset_result != -1) {
+        TEST_FAIL("Reset should have failed with NULL parser");
+        return;
+    }
+
+    TEST_PASS();
+}
+
+/* Test 31: Parser reset clears error state */
 void test_reset_clears_error(void) {
     const char *boundary = "bound";
     const char *bad_data =
@@ -1566,6 +1582,7 @@ int main(void) {
     test_reset_basic();
     test_reset_same_boundary();
     test_reset_boundary_too_long();
+    test_reset_null_parser();
     test_reset_clears_error();
     printf("\n");
 
