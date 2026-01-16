@@ -44,7 +44,7 @@ static int get_callback(lua_State *L, int ref, const char *name) {
     if (ref == LUA_NOREF || ref == LUA_REFNIL) {
         return 0;
     }
-    
+
     lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
     if (lua_isnil(L, -1)) {
         lua_pop(L, 1);
@@ -64,19 +64,19 @@ static int on_header_field_cb(multipart_parser *p, const char *at, size_t length
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_header_field"))
         return 0;
-    
+
     lua_pushlstring(L, at, length);
     if (lua_pcall(L, 1, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -86,19 +86,19 @@ static int on_header_value_cb(multipart_parser *p, const char *at, size_t length
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_header_value"))
         return 0;
-    
+
     lua_pushlstring(L, at, length);
     if (lua_pcall(L, 1, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -108,19 +108,19 @@ static int on_part_data_cb(multipart_parser *p, const char *at, size_t length) {
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_part_data"))
         return 0;
-    
+
     lua_pushlstring(L, at, length);
     if (lua_pcall(L, 1, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -130,18 +130,18 @@ static int on_part_data_begin_cb(multipart_parser *p) {
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_part_data_begin"))
         return 0;
-    
+
     if (lua_pcall(L, 0, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -151,18 +151,18 @@ static int on_headers_complete_cb(multipart_parser *p) {
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_headers_complete"))
         return 0;
-    
+
     if (lua_pcall(L, 0, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -172,18 +172,18 @@ static int on_part_data_end_cb(multipart_parser *p) {
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_part_data_end"))
         return 0;
-    
+
     if (lua_pcall(L, 0, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -193,18 +193,18 @@ static int on_body_end_cb(multipart_parser *p) {
     lua_multipart_parser *lmp;
     lua_State *L;
     int result;
-    
+
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
     L = lmp->L;
-    
+
     if (!get_callback(L, lmp->callbacks_ref, "on_body_end"))
         return 0;
-    
+
     if (lua_pcall(L, 0, 1, 0) != 0) {
         lua_pop(L, 1);
         return -1;
     }
-    
+
     result = lua_isnumber(L, -1) ? (int)lua_tointeger(L, -1) : 0;
     lua_pop(L, 1);
     return result;
@@ -214,36 +214,36 @@ static int on_body_end_cb(multipart_parser *p) {
 static int lmp_new(lua_State *L) {
     const char *boundary;
     lua_multipart_parser *lmp;
-    
+
     /* Get boundary string */
     boundary = luaL_checkstring(L, 1);
-    
+
     /* Get callbacks table (optional) */
     if (!lua_isnoneornil(L, 2)) {
         luaL_checktype(L, 2, LUA_TTABLE);
     }
-    
+
     /* Create userdata */
     lmp = (lua_multipart_parser *)lua_newuserdata(L, sizeof(lua_multipart_parser));
     if (!lmp) {
         return luaL_error(L, "Failed to allocate memory for parser");
     }
-    
+
     /* Initialize */
     lmp->parser = NULL;
     lmp->L = L;
     lmp->callbacks_ref = LUA_NOREF;
-    
+
     /* Set metatable */
     luaL_getmetatable(L, MULTIPART_PARSER_MT);
     lua_setmetatable(L, -2);
-    
+
     /* Store callbacks table in registry */
     if (!lua_isnoneornil(L, 2)) {
         lua_pushvalue(L, 2);
         lmp->callbacks_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
-    
+
     /* Setup callbacks in the structure's settings */
     memset(&lmp->settings, 0, sizeof(multipart_parser_settings));
     lmp->settings.on_header_field = on_header_field_cb;
@@ -253,16 +253,16 @@ static int lmp_new(lua_State *L) {
     lmp->settings.on_headers_complete = on_headers_complete_cb;
     lmp->settings.on_part_data_end = on_part_data_end_cb;
     lmp->settings.on_body_end = on_body_end_cb;
-    
+
     /* Initialize parser with pointer to our settings */
     lmp->parser = multipart_parser_init(boundary, &lmp->settings);
     if (!lmp->parser) {
         return luaL_error(L, "Failed to initialize multipart parser");
     }
-    
+
     /* Set user data */
     multipart_parser_set_data(lmp->parser, lmp);
-    
+
     return 1;
 }
 
@@ -272,16 +272,16 @@ static int lmp_execute(lua_State *L) {
     const char *data;
     size_t len;
     size_t parsed;
-    
+
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
     data = luaL_checklstring(L, 2, &len);
-    
+
     if (!lmp->parser) {
         return luaL_error(L, "Parser already freed");
     }
-    
+
     parsed = multipart_parser_execute(lmp->parser, data, len);
-    
+
     lua_pushinteger(L, parsed);
     return 1;
 }
@@ -290,13 +290,13 @@ static int lmp_execute(lua_State *L) {
 static int lmp_get_error(lua_State *L) {
     lua_multipart_parser *lmp;
     multipart_parser_error err;
-    
+
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
-    
+
     if (!lmp->parser) {
         return luaL_error(L, "Parser already freed");
     }
-    
+
     err = multipart_parser_get_error(lmp->parser);
     lua_pushinteger(L, err);
     return 1;
@@ -306,13 +306,13 @@ static int lmp_get_error(lua_State *L) {
 static int lmp_get_error_message(lua_State *L) {
     lua_multipart_parser *lmp;
     const char *msg;
-    
+
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
-    
+
     if (!lmp->parser) {
         return luaL_error(L, "Parser already freed");
     }
-    
+
     msg = multipart_parser_get_error_message(lmp->parser);
     lua_pushstring(L, msg);
     return 1;
@@ -321,19 +321,19 @@ static int lmp_get_error_message(lua_State *L) {
 /* Lua API: parser:free() */
 static int lmp_free(lua_State *L) {
     lua_multipart_parser *lmp;
-    
+
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
-    
+
     if (lmp->parser) {
         multipart_parser_free(lmp->parser);
         lmp->parser = NULL;
     }
-    
+
     if (lmp->callbacks_ref != LUA_NOREF) {
         luaL_unref(L, LUA_REGISTRYINDEX, lmp->callbacks_ref);
         lmp->callbacks_ref = LUA_NOREF;
     }
-    
+
     return 0;
 }
 
@@ -399,11 +399,11 @@ static int lmp_parse(lua_State *L) {
     multipart_parser *parser;
     multipart_parser_settings settings;
     size_t parsed;
-    
+
     /* Get arguments */
     boundary = luaL_checkstring(L, 1);
     body = luaL_checklstring(L, 2, &length);
-    
+
     /* Setup simple callbacks */
     memset(&settings, 0, sizeof(multipart_parser_settings));
     settings.on_header_field = simple_read_header_field;
@@ -411,7 +411,7 @@ static int lmp_parse(lua_State *L) {
     settings.on_part_data = simple_read_part_data;
     settings.on_part_data_begin = simple_on_part_data_begin;
     settings.on_part_data_end = simple_on_part_data_end;
-    
+
     /* Create parser */
     parser = multipart_parser_init(boundary, &settings);
     if (!parser) {
@@ -419,16 +419,16 @@ static int lmp_parse(lua_State *L) {
         lua_pushstring(L, "Failed to initialize parser");
         return 2;
     }
-    
+
     /* Set Lua state as user data */
     multipart_parser_set_data(parser, L);
-    
+
     /* Create result table */
     lua_createtable(L, 4, 4);
-    
+
     /* Parse */
     parsed = multipart_parser_execute(parser, body, length);
-    
+
     /* Check result */
     if (parsed == length) {
         /* Success - result table is on stack */
@@ -437,9 +437,9 @@ static int lmp_parse(lua_State *L) {
     } else {
         /* Error - return nil and error position */
         const char *errmsg = multipart_parser_get_error_message(parser);
-        
+
         multipart_parser_free(parser);
-        
+
         lua_pop(L, 1); /* Pop result table */
         lua_pushnil(L);
         lua_pushfstring(L, "%s (at position %d)", errmsg, (int)parsed);
@@ -457,28 +457,28 @@ static const luaL_Reg module_funcs[] = {
 /* Error codes table */
 static void create_error_codes(lua_State *L) {
     lua_newtable(L);
-    
+
     lua_pushinteger(L, MPPE_OK);
     lua_setfield(L, -2, "OK");
-    
+
     lua_pushinteger(L, MPPE_PAUSED);
     lua_setfield(L, -2, "PAUSED");
-    
+
     lua_pushinteger(L, MPPE_INVALID_BOUNDARY);
     lua_setfield(L, -2, "INVALID_BOUNDARY");
-    
+
     lua_pushinteger(L, MPPE_INVALID_HEADER_FIELD);
     lua_setfield(L, -2, "INVALID_HEADER_FIELD");
-    
+
     lua_pushinteger(L, MPPE_INVALID_HEADER_FORMAT);
     lua_setfield(L, -2, "INVALID_HEADER_FORMAT");
-    
+
     lua_pushinteger(L, MPPE_INVALID_STATE);
     lua_setfield(L, -2, "INVALID_STATE");
-    
+
     lua_pushinteger(L, MPPE_UNKNOWN);
     lua_setfield(L, -2, "UNKNOWN");
-    
+
     lua_setfield(L, -2, "ERROR");
 }
 
@@ -492,17 +492,17 @@ int luaopen_multipart_parser(lua_State *L) {
     lua_setfield(L, -2, "__gc");
     luaL_setfuncs(L, parser_methods, 0);
     lua_pop(L, 1);
-    
+
     /* Create module table */
     lua_newtable(L);
     luaL_setfuncs(L, module_funcs, 0);
-    
+
     /* Add error codes */
     create_error_codes(L);
-    
+
     /* Add version */
     lua_pushstring(L, "1.0.0");
     lua_setfield(L, -2, "_VERSION");
-    
+
     return 1;
 }
