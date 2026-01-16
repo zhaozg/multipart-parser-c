@@ -4,6 +4,12 @@ This directory contains comprehensive documentation for the multipart-parser-c p
 
 ## Core Documentation
 
+### [rfc/](rfc/)
+RFC compliance documentation:
+- **[RFC_7578_COMPLIANCE.md](rfc/RFC_7578_COMPLIANCE.md)** - Complete RFC 7578 compliance guide
+- **[RFC_COMPARISON.md](rfc/RFC_COMPARISON.md)** - Comparison of RFC 2046, 2388, and 7578
+- Detailed requirements, implementation status, and test coverage
+
 ### [TESTING.md](TESTING.md)
 Complete testing guide covering:
 - Running tests locally
@@ -67,6 +73,12 @@ docs/
 ├── TESTING.md                   # Testing guide
 ├── SECURITY.md                  # Security improvements
 ├── HEADER_PARSING_GUIDE.md      # User guide for header parsing
+├── PERFORMANCE_RESULTS.md       # Performance benchmarking results
+├── STATUS.md                    # Implementation status summary
+├── rfc/
+│   ├── README.md               # RFC documentation index
+│   ├── RFC_7578_COMPLIANCE.md  # RFC 7578 compliance guide
+│   └── RFC_COMPARISON.md       # RFC standards comparison
 ├── ci/
 │   └── CI_GUIDE.md             # CI/CD infrastructure guide
 └── upstream/
