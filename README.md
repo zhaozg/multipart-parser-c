@@ -4,10 +4,10 @@
 * No dependencies
 * Works with chunks of a data - no need to buffer the whole request
 * Almost no internal buffering. Buffer size doesn't exceed the size of the boundary (~60-70 bytes)
-* **RFC 2046 compliant** - Properly handles boundary format and preamble
+* **RFC 7578 & RFC 2046 compliant** - Follows current multipart/form-data standard
 * **Memory safe** - Verified with AddressSanitizer and Valgrind
 * **High performance** - 24-41% faster than baseline with optimizations
-* **Well tested** - 26 comprehensive tests (>95% coverage)
+* **Well tested** - 31 comprehensive tests (>95% coverage)
 * **Error handling** - Clear error codes and messages for debugging
 * **Full API documentation** - Doxygen comments on all public APIs
 * **CI/CD** - Automated testing, coverage, and profiling
@@ -125,6 +125,30 @@ private:
 };
 ```
 
+### RFC Compliance
+
+This library implements **RFC 7578** (2015), the current standard for multipart/form-data, built on the foundation of **RFC 2046** (1996).
+
+**Standards Implemented:**
+- ✅ **RFC 7578** - multipart/form-data (current standard)
+- ✅ **RFC 2046** - MIME multipart structure
+- ✅ Binary-safe parsing (handles any byte sequence)
+- ✅ Streaming design (no buffering of entire message)
+- ✅ Empty field support (RFC 7578 Section 4.2)
+- ✅ Multiple files with same name (RFC 7578 Section 4.3)
+- ✅ Preamble support (RFC 2046 Section 5.1)
+
+**Application Responsibilities:**
+- ⚠️ Content-Disposition parsing (see [docs/HEADER_PARSING_GUIDE.md](docs/HEADER_PARSING_GUIDE.md))
+- ⚠️ Filename extraction and sanitization
+- ⚠️ RFC 5987 encoding/decoding (for non-ASCII filenames)
+- ⚠️ Size limits and security validations
+
+**Detailed Documentation:**
+- **[docs/rfc/RFC_7578_COMPLIANCE.md](docs/rfc/RFC_7578_COMPLIANCE.md)** - Complete RFC 7578 compliance guide
+- **[docs/rfc/RFC_COMPARISON.md](docs/rfc/RFC_COMPARISON.md)** - RFC 2046 vs 2388 vs 7578 comparison
+- **[docs/SECURITY.md](docs/SECURITY.md)** - Security considerations and best practices
+
 ### Upstream Tracking
 
 This is a fork of [iafonov/multipart-parser-c](https://github.com/iafonov/multipart-parser-c).
@@ -147,7 +171,7 @@ We maintain systematic tracking of upstream issues and pull requests:
 - **Performance**: 24-41% real-world improvement (memchr optimization, callback buffering, state machine)
 - **Build System**: CMake support for cross-platform builds (Linux/macOS/Windows)
 - **API Enhancements**: Error handling with 7 error codes, comprehensive Doxygen documentation
-- **Testing**: Expanded from 18 to 26 tests (+44%), >95% coverage
+- **Testing**: Expanded from 18 to 31 tests (+72%), >95% coverage
 - **Security**: Fuzzing infrastructure (AFL++/libFuzzer) and sanitizer testing
 
 **Performance Benchmarks**:

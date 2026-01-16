@@ -15,11 +15,17 @@ extern "C"
 
 /**
  * @file multipart_parser.h
- * @brief RFC 2046 compliant multipart/form-data parser
+ * @brief RFC 7578 compliant multipart/form-data parser
  *
- * This library provides a streaming parser for multipart/form-data content.
+ * This library provides a streaming parser for multipart/form-data content
+ * as specified in RFC 7578 (2015) and RFC 2046 (1996).
+ *
  * It works with chunks of data without requiring the entire request to be
  * buffered in memory.
+ *
+ * @see https://tools.ietf.org/html/rfc7578 RFC 7578 (current standard)
+ * @see https://tools.ietf.org/html/rfc2046 RFC 2046 (MIME multipart)
+ * @see docs/rfc/RFC_7578_COMPLIANCE.md For detailed compliance information
  */
 
 /**
