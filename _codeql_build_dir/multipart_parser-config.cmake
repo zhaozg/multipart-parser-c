@@ -1,5 +1,0 @@
-
-
-include("${CMAKE_CURRENT_LIST_DIR}/multipart_parser-targets.cmake")
-
-check_required_components(multipart_parser)

@@ -35,3 +35,4 @@ fuzz-findings/
 gmon.out
 perf.data*
 .DS_Store
+_codeql_build_dir/
