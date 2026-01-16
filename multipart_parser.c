@@ -238,39 +238,39 @@ const char* multipart_parser_get_error_message(multipart_parser* p) {
 
 int multipart_parser_reset(multipart_parser* p, const char *boundary) {
     size_t new_boundary_length;
-    
+
     /* Validate parser pointer */
     if (p == NULL) {
         return -1;
     }
-    
+
     if (boundary != NULL) {
         new_boundary_length = strlen(boundary);
-        
+
         /* Check if new boundary fits in allocated space
          * The original allocation has space for the boundary plus lookbehind (boundary_length + 8)
          * So we can accept any boundary up to and including the original length */
         if (new_boundary_length > p->boundary_length) {
             return -1;
         }
-        
+
         /* Update boundary */
         strcpy(p->multipart_boundary, boundary);
         p->boundary_length = new_boundary_length;
     }
-    
+
     /* Reset parser state */
     p->index = 0;
     p->state = s_start;
     p->error = MPPE_OK;
-    
+
     /* Clear buffer lengths (but keep buffer pointers) */
     p->header_field_buffer_len = 0;
     p->header_value_buffer_len = 0;
     p->part_data_buffer_len = 0;
-    
+
     /* Note: settings and data pointer are preserved */
-    
+
     return 0;
 }
 

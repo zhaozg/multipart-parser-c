@@ -325,7 +325,7 @@ static int lmp_reset(lua_State *L) {
     int result;
 
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
-    
+
     if (!lmp->parser) {
         return luaL_error(L, "Parser already freed");
     }
