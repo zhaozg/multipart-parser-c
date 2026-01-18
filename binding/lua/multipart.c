@@ -4,11 +4,11 @@
  */
 
 /* Stack size requirements for Lua callbacks:
- * - get_callback: 3 slots (rawgeti, getfield, temporary during remove)
+ * - get_callback: 3 slots (rawgeti result, getfield result, margin for operations)
  * - Data callbacks (header_field, header_value, part_data): 4 slots
- *   (callback function, string argument, return value, safety margin)
+ *   (callback function from get_callback, string argument, return value, safety margin)
  * - Notify callbacks (part_data_begin, headers_complete, etc.): 3 slots
- *   (callback function, return value, safety margin)
+ *   (callback function from get_callback, return value, safety margin)
  */
 
 #include <lua.h>
@@ -59,9 +59,9 @@ static int get_callback(lua_State *L, int ref, const char *name) {
     }
 
     /* Ensure we have enough stack space:
-     * 1 slot for rawgeti result
-     * 1 slot for getfield result
-     * 1 slot for temporary during remove operation
+     * 1 slot for rawgeti result (registry table)
+     * 1 slot for getfield result (callback function)
+     * 1 slot for margin during lua_remove operation
      */
     if (!lua_checkstack(L, 3)) {
         return 0;
