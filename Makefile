@@ -19,6 +19,11 @@ test: test_bin
 	@echo "Running comprehensive test suite..."
 	./test
 
+# Modular test suite (new organized structure)
+test_modular:
+	@echo "Building and running modular test suite..."
+	$(MAKE) -C tests test
+
 test_bin: test.c multipart_parser.c multipart_parser.h
 	$(CC) $(CFLAGS) -o test test.c multipart_parser.c
 
@@ -36,6 +41,7 @@ clean:
 	rm -f callgrind.out* cachegrind.out* massif.out*
 	rm -f valgrind-*.log
 	rm -rf fuzz-corpus fuzz-findings
+	$(MAKE) -C tests clean
 
 # AddressSanitizer targets
 test-asan: clean
