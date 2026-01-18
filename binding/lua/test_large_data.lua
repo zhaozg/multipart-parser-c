@@ -3,7 +3,7 @@
   Test for processing large multipart data (simulating >4GB)
   This test simulates processing large amounts of data without actually
   creating 4GB of data in memory by reusing chunks.
-  
+
   It tests the GC safety issue where lua_pcall in callbacks might
   trigger GC and invalidate the data pointer.
 ]]
@@ -50,62 +50,69 @@ local stats = {
     max_memory = 0
 }
 
+local fields = {}
+local field
 -- Callbacks
 local callbacks = {
     on_header_field = function(data)
-        -- Intentionally empty to focus on data processing
+        assert(field == nil, "Previous header field not closed")
+        field = data
         return 0
     end,
-    
+
     on_header_value = function(data)
+        assert(field ~= nil, "Header value without field")
+        fields[#fields][field] = data
+        field = nil
         return 0
     end,
-    
+
     on_part_data_begin = function()
         print("Part data begin")
+        fields[#fields + 1] = {}
         stats.total_bytes = 0
         stats.part_data_calls = 0
         return 0
     end,
-    
+
     on_part_data = function(data)
         if not data then
             return 0
         end
-        
+
         stats.total_bytes = stats.total_bytes + #data
         stats.part_data_calls = stats.part_data_calls + 1
-        
+
         -- Every 1000 calls, print progress and force GC
         if stats.part_data_calls % 1000 == 0 then
             local mem_kb = collectgarbage("count")
             if mem_kb > stats.max_memory then
                 stats.max_memory = mem_kb
             end
-            
+
             print(string.format(
                 "Progress: %d calls, %.2f MB processed, %.2f KB memory",
                 stats.part_data_calls,
                 stats.total_bytes / (1024 * 1024),
                 mem_kb
             ))
-            
+
             -- Force GC to test safety
             collectgarbage("collect")
         end
-        
+
         return 0
     end,
-    
+
     on_part_data_end = function()
         print(string.format("Part data end: %.2f MB total", stats.total_bytes / (1024 * 1024)))
         return 0
     end,
-    
+
     on_headers_complete = function()
         return 0
     end,
-    
+
     on_body_end = function()
         print("Body end")
         return 0
@@ -132,9 +139,9 @@ for i = 1, NUM_CHUNKS do
     local is_first = (i == 1)
     local is_last = (i == NUM_CHUNKS)
     local chunk = create_test_chunk(i, is_first, is_last)
-    
+
     local parsed = parser:execute(chunk)
-    
+
     if parsed ~= #chunk then
         print(string.format("FAILED: Chunk %d: parsed %d bytes, expected %d", i, parsed, #chunk))
         local err = parser:get_error()
@@ -143,9 +150,9 @@ for i = 1, NUM_CHUNKS do
         success = false
         break
     end
-    
+
     stats.chunks_processed = i
-    
+
     -- Every 10000 chunks, print checkpoint
     if i % 10000 == 0 then
         print(string.format("Checkpoint: %d/%d chunks processed (%.1f%%)",

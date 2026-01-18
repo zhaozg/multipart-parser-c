@@ -56,6 +56,7 @@ multipart-parser-c 为超高速 C 语言 HTTP multipart/form-data 解析库， �
 
 - 代码注释采用英文，关键逻辑建议详细说明。
 - 文档结构清晰，分章节、分任务类型描述。
+- 注意源代码中避免空行(仅空格或字表符).
 - 参考现有 `README.md`、`doc/` 目录文档风格。
 
 ## 7. Agent 能力建议

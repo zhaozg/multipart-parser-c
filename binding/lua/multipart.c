@@ -93,12 +93,12 @@ static int on_header_field_cb(multipart_parser *p, const char *at, size_t length
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -131,12 +131,12 @@ static int on_header_value_cb(multipart_parser *p, const char *at, size_t length
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -169,12 +169,12 @@ static int on_part_data_cb(multipart_parser *p, const char *at, size_t length) {
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -207,12 +207,12 @@ static int on_part_data_begin_cb(multipart_parser *p) {
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -244,12 +244,12 @@ static int on_headers_complete_cb(multipart_parser *p) {
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -281,12 +281,12 @@ static int on_part_data_end_cb(multipart_parser *p) {
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -318,12 +318,12 @@ static int on_body_end_cb(multipart_parser *p) {
     }
 
     lmp = (lua_multipart_parser *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate lmp structure pointer */
     if (lmp == NULL || lmp->L == NULL) {
         return -1;
     }
-    
+
     L = lmp->L;
 
     /* Ensure enough stack space (see stack requirements in file header) */
@@ -408,7 +408,7 @@ static int lmp_execute(lua_State *L) {
     size_t parsed;
 
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
-    
+
     /* Get string data pointer - CRITICAL: The string at index 2 must remain
      * on the stack during multipart_parser_execute() because:
      * 1. Callbacks may trigger Lua GC via lua_pcall()
@@ -526,24 +526,24 @@ static const luaL_Reg parser_methods[] = {
 /* Simple callback: read header field name */
 static int simple_read_header_field(multipart_parser *p, const char *at, size_t length) {
     lua_State *L;
-    
+
     /* Safety check: Validate parser pointer */
     if (p == NULL) {
         return -1;
     }
-    
+
     L = (lua_State *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate Lua state pointer */
     if (L == NULL) {
         return -1;
     }
-    
+
     /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
-    
+
     lua_pushlstring(L, at, length);
     return 0;
 }
@@ -551,24 +551,24 @@ static int simple_read_header_field(multipart_parser *p, const char *at, size_t 
 /* Simple callback: read header value and store key-value pair */
 static int simple_read_header_value(multipart_parser *p, const char *at, size_t length) {
     lua_State *L;
-    
+
     /* Safety check: Validate parser pointer */
     if (p == NULL) {
         return -1;
     }
-    
+
     L = (lua_State *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate Lua state pointer */
     if (L == NULL) {
         return -1;
     }
-    
+
     /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
-    
+
     lua_pushlstring(L, at, length);
     lua_rawset(L, -3);
     return 0;
@@ -578,24 +578,24 @@ static int simple_read_header_value(multipart_parser *p, const char *at, size_t 
 static int simple_read_part_data(multipart_parser *p, const char *at, size_t length) {
     lua_State *L;
     size_t idx;
-    
+
     /* Safety check: Validate parser pointer */
     if (p == NULL) {
         return -1;
     }
-    
+
     L = (lua_State *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate Lua state pointer */
     if (L == NULL) {
         return -1;
     }
-    
+
     /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
-    
+
     idx = lua_rawlen(L, -1);
     lua_pushlstring(L, at, length);
     lua_rawseti(L, -2, idx + 1);
@@ -605,24 +605,24 @@ static int simple_read_part_data(multipart_parser *p, const char *at, size_t len
 /* Simple callback: begin new part - create table for it */
 static int simple_on_part_data_begin(multipart_parser *p) {
     lua_State *L;
-    
+
     /* Safety check: Validate parser pointer */
     if (p == NULL) {
         return -1;
     }
-    
+
     L = (lua_State *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate Lua state pointer */
     if (L == NULL) {
         return -1;
     }
-    
+
     /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
-    
+
     lua_createtable(L, 8, 16);
     return 0;
 }
@@ -631,24 +631,24 @@ static int simple_on_part_data_begin(multipart_parser *p) {
 static int simple_on_part_data_end(multipart_parser *p) {
     lua_State *L;
     size_t idx;
-    
+
     /* Safety check: Validate parser pointer */
     if (p == NULL) {
         return -1;
     }
-    
+
     L = (lua_State *)multipart_parser_get_data(p);
-    
+
     /* Safety check: Validate Lua state pointer */
     if (L == NULL) {
         return -1;
     }
-    
+
     /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
-    
+
     idx = lua_rawlen(L, -2);
     lua_rawseti(L, -2, idx + 1);
     return 0;
