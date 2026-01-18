@@ -15,12 +15,9 @@ multipart_parser.o: multipart_parser.c multipart_parser.h
 solib: multipart_parser.o
 	$(CC) -shared -Wl,-soname,libmultipart.so -o libmultipart.so multipart_parser.o
 
-test: test_bin
-	@echo "Running comprehensive test suite..."
-	./test
-
-test_bin: test.c multipart_parser.c multipart_parser.h
-	$(CC) $(CFLAGS) -o test test.c multipart_parser.c
+test:
+	@echo "Building and running test suite..."
+	$(MAKE) -C tests test
 
 benchmark_bin: benchmark.c multipart_parser.c multipart_parser.h
 	$(CC) $(CFLAGS) -o benchmark benchmark.c multipart_parser.c
@@ -30,53 +27,53 @@ benchmark: benchmark_bin
 	./benchmark
 
 clean:
-	rm -f *.o *.so test benchmark fuzz-afl fuzz-libfuzzer
+	rm -f *.o *.so benchmark fuzz-afl fuzz-libfuzzer
 	rm -f *.gcov *.gcda *.gcno coverage.info coverage.txt coverage.xml
 	rm -rf coverage-html
 	rm -f callgrind.out* cachegrind.out* massif.out*
 	rm -f valgrind-*.log
 	rm -rf fuzz-corpus fuzz-findings
+	$(MAKE) -C tests clean
 
 # AddressSanitizer targets
 test-asan: clean
-	CFLAGS="$(ASAN_FLAGS)" $(MAKE) test_bin
 	@echo "Running tests with AddressSanitizer..."
-	ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test
+	CFLAGS="$(ASAN_FLAGS)" $(MAKE) -C tests
+	cd tests && ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:strict_init_order=1 ./test_suite
 
 # UndefinedBehaviorSanitizer targets
 test-ubsan: clean
-	CFLAGS="$(UBSAN_FLAGS)" $(MAKE) test_bin
 	@echo "Running tests with UndefinedBehaviorSanitizer..."
-	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test
+	CFLAGS="$(UBSAN_FLAGS)" $(MAKE) -C tests
+	cd tests && UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./test_suite
 
 # Valgrind memcheck targets
 test-valgrind: clean
-	CFLAGS="-std=c89 -ansi -pedantic -g -O0 -Wall" $(MAKE) test_bin
 	@echo "Running tests with Valgrind memcheck..."
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=.valgrind.suppressions ./test
+	CFLAGS="-std=c89 -ansi -pedantic -g -O0 -Wall" $(MAKE) -C tests
+	cd tests && valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=../.valgrind.suppressions ./test_suite
 
 # Code coverage targets
 coverage: clean
-	CFLAGS="$(COVERAGE_FLAGS)" $(MAKE) test_bin
 	@echo "Running tests for coverage..."
-	./test
+	CFLAGS="$(COVERAGE_FLAGS)" $(MAKE) -C tests
+	cd tests && ./test_suite
 	@echo "Generating coverage report..."
-	gcov -o . multipart_parser.c test.c || true
+	cd tests && gcov -o . multipart_parser.c *.c || true
 	@echo ""
-	@echo "Coverage files generated:"
-	@ls -lh *.gcov 2>/dev/null || echo "  (gcov files generated)"
+	@echo "Coverage files generated in tests/ directory"
 	@echo ""
 	@echo "To view coverage for multipart_parser.c:"
-	@echo "  less multipart_parser.c.gcov"
+	@echo "  less tests/multipart_parser.c.gcov"
 	@echo ""
 	@if command -v lcov >/dev/null 2>&1; then \
 		echo "Generating LCOV report..."; \
-		lcov --capture --directory . --output-file coverage.info 2>/dev/null || true; \
-		lcov --remove coverage.info '/usr/*' --output-file coverage.info 2>/dev/null || true; \
-		lcov --list coverage.info 2>/dev/null || true; \
+		cd tests && lcov --capture --directory . --output-file coverage.info 2>/dev/null || true; \
+		cd tests && lcov --remove coverage.info '/usr/*' --output-file coverage.info 2>/dev/null || true; \
+		cd tests && lcov --list coverage.info 2>/dev/null || true; \
 		if command -v genhtml >/dev/null 2>&1; then \
-			genhtml coverage.info --output-directory coverage-html 2>/dev/null || true; \
-			echo "HTML report: coverage-html/index.html"; \
+			cd tests && genhtml coverage.info --output-directory coverage-html 2>/dev/null || true; \
+			echo "HTML report: tests/coverage-html/index.html"; \
 		fi; \
 	fi
 	@if command -v gcovr >/dev/null 2>&1; then \
@@ -118,7 +115,7 @@ test-all: test test-asan test-ubsan test-valgrind coverage
 # Link-Time Optimization build
 build-lto: clean
 	@echo "Building with Link-Time Optimization..."
-	$(CC) $(CFLAGS_LTO) $(LDFLAGS_LTO) -o test test.c multipart_parser.c
+	CFLAGS="$(CFLAGS_LTO)" LDFLAGS="$(LDFLAGS_LTO)" $(MAKE) -C tests
 	$(CC) $(CFLAGS_LTO) $(LDFLAGS_LTO) -o benchmark benchmark.c multipart_parser.c
 
 # Profile-Guided Optimization

@@ -496,6 +496,23 @@ The test suite includes 15 comprehensive tests covering:
 - Error handling
 - Edge cases
 
+### Large Data Test (4GB Simulation)
+
+To test processing large amounts of data (simulating >4GB) without actually creating large files:
+
+```bash
+cd binding/lua
+luajit test_large_data.lua
+```
+
+This test:
+- Simulates processing 4GB of data in 64KB chunks (65,536 chunks)
+- Forces garbage collection during processing to test memory safety
+- Verifies that the data pointer remains valid across GC cycles
+- Tests the same conditions that caused the original crash in production
+
+**Note**: This test is particularly important for verifying that `lua_pcall` in callbacks doesn't trigger GC issues that could invalidate the data pointer during `multipart_parser_execute`.
+
 ## Performance
 
 The binding has minimal overhead over the C library:

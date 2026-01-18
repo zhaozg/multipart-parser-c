@@ -201,22 +201,34 @@ static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
 }
 
 void multipart_parser_free(multipart_parser* p) {
+  /* Note: free(NULL) is safe per C standard */
   free(p);
 }
 
 void multipart_parser_set_data(multipart_parser *p, void *data) {
-    p->data = data;
+    if (p != NULL) {
+        p->data = data;
+    }
 }
 
 void *multipart_parser_get_data(multipart_parser *p) {
+    if (p == NULL) {
+        return NULL;
+    }
     return p->data;
 }
 
 multipart_parser_error multipart_parser_get_error(multipart_parser* p) {
+    if (p == NULL) {
+        return MPPE_UNKNOWN;
+    }
     return p->error;
 }
 
 const char* multipart_parser_get_error_message(multipart_parser* p) {
+    if (p == NULL) {
+        return "Invalid parser pointer";
+    }
     switch (p->error) {
         case MPPE_OK:
             return "No error";
@@ -279,6 +291,17 @@ size_t multipart_parser_execute(multipart_parser* p, const char *buf, size_t len
   size_t mark = 0;
   char c, cl;
   int is_last = 0;
+
+  /* Safety check: Validate parser pointer */
+  if (p == NULL) {
+    return 0;
+  }
+
+  /* Safety check: Validate buffer pointer if len > 0 */
+  if (len > 0 && buf == NULL) {
+    p->error = MPPE_INVALID_STATE;
+    return 0;
+  }
 
   /* Reset error state at start of parsing */
   p->error = MPPE_OK;
