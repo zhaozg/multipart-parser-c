@@ -1802,7 +1802,11 @@ static void test_null_buffer_safety(void) {
     }
     
     /* Test execute with NULL buffer and len = 0 (should be safe) */
-    multipart_parser_reset(parser, NULL);
+    if (multipart_parser_reset(parser, NULL) != 0) {
+        multipart_parser_free(parser);
+        TEST_FAIL("reset should succeed");
+        return;
+    }
     parsed = multipart_parser_execute(parser, NULL, 0);
     /* This is actually valid - parsing 0 bytes with NULL buffer is OK */
     

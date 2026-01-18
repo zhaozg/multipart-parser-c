@@ -203,7 +203,7 @@ All tests pass:
 - 0 security vulnerabilities
 - 0 memory leaks
 
-## Large File and High-Volume Data Safety (Issue: 程序奔溃的问题分析)
+## Large File and High-Volume Data Safety
 
 ### Problem Description
 When processing large amounts of data (>4GB), the program could crash with:

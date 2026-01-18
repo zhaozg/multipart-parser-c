@@ -3,6 +3,14 @@
  * MIT License
  */
 
+/* Stack size requirements for Lua callbacks:
+ * - get_callback: 3 slots (rawgeti, getfield, temporary during remove)
+ * - Data callbacks (header_field, header_value, part_data): 4 slots
+ *   (callback function, string argument, return value, safety margin)
+ * - Notify callbacks (part_data_begin, headers_complete, etc.): 3 slots
+ *   (callback function, return value, safety margin)
+ */
+
 #include <lua.h>
 #include <lauxlib.h>
 #include <string.h>
@@ -50,7 +58,11 @@ static int get_callback(lua_State *L, int ref, const char *name) {
         return 0;
     }
 
-    /* Ensure we have enough stack space */
+    /* Ensure we have enough stack space:
+     * 1 slot for rawgeti result
+     * 1 slot for getfield result
+     * 1 slot for temporary during remove operation
+     */
     if (!lua_checkstack(L, 3)) {
         return 0;
     }
@@ -89,7 +101,7 @@ static int on_header_field_cb(multipart_parser *p, const char *at, size_t length
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 4)) {
         return -1;
     }
@@ -127,7 +139,7 @@ static int on_header_value_cb(multipart_parser *p, const char *at, size_t length
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 4)) {
         return -1;
     }
@@ -165,7 +177,7 @@ static int on_part_data_cb(multipart_parser *p, const char *at, size_t length) {
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 4)) {
         return -1;
     }
@@ -203,7 +215,7 @@ static int on_part_data_begin_cb(multipart_parser *p) {
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 3)) {
         return -1;
     }
@@ -240,7 +252,7 @@ static int on_headers_complete_cb(multipart_parser *p) {
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 3)) {
         return -1;
     }
@@ -277,7 +289,7 @@ static int on_part_data_end_cb(multipart_parser *p) {
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 3)) {
         return -1;
     }
@@ -314,7 +326,7 @@ static int on_body_end_cb(multipart_parser *p) {
     
     L = lmp->L;
 
-    /* Safety check: Ensure we have enough stack space for the callback */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 3)) {
         return -1;
     }
@@ -518,7 +530,7 @@ static int simple_read_header_field(multipart_parser *p, const char *at, size_t 
         return -1;
     }
     
-    /* Safety check: Ensure we have enough stack space */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
@@ -543,7 +555,7 @@ static int simple_read_header_value(multipart_parser *p, const char *at, size_t 
         return -1;
     }
     
-    /* Safety check: Ensure we have enough stack space */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
@@ -570,7 +582,7 @@ static int simple_read_part_data(multipart_parser *p, const char *at, size_t len
         return -1;
     }
     
-    /* Safety check: Ensure we have enough stack space */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
@@ -597,7 +609,7 @@ static int simple_on_part_data_begin(multipart_parser *p) {
         return -1;
     }
     
-    /* Safety check: Ensure we have enough stack space */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
@@ -623,7 +635,7 @@ static int simple_on_part_data_end(multipart_parser *p) {
         return -1;
     }
     
-    /* Safety check: Ensure we have enough stack space */
+    /* Ensure enough stack space (see stack requirements in file header) */
     if (!lua_checkstack(L, 2)) {
         return -1;
     }
