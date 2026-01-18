@@ -111,19 +111,20 @@ cd tests
 4. **Modularity**: Tests are organized by functionality
 5. **Documentation**: Clear structure documents test organization
 
-## Backward Compatibility
+## Running Tests
 
-The original `test.c` is preserved in the parent directory and continues to work:
+All test commands now use the modular test suite:
 
 ```bash
-# Old way (still works)
+# Run all tests
 make test
 
-# New way (recommended)
-make test_modular
+# Or run directly from tests directory
+cd tests
+make test
 ```
 
-Both test suites contain identical tests and should produce identical results.
+The modular test suite is the standard way to test the library.
 
 ## Adding New Tests
 
