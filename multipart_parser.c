@@ -201,11 +201,8 @@ static int buffer_or_emit(multipart_parser* p, multipart_data_cb callback,
 }
 
 void multipart_parser_free(multipart_parser* p) {
-  /* Defensive programming: explicit NULL check for clarity and robustness
-   * Note: free(NULL) is safe per C standard, but explicit check documents intent */
-  if (p != NULL) {
-    free(p);
-  }
+  /* Note: free(NULL) is safe per C standard */
+  free(p);
 }
 
 void multipart_parser_set_data(multipart_parser *p, void *data) {
