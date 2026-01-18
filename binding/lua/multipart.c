@@ -408,12 +408,21 @@ static int lmp_execute(lua_State *L) {
     size_t parsed;
 
     lmp = (lua_multipart_parser *)luaL_checkudata(L, 1, MULTIPART_PARSER_MT);
+    
+    /* Get string data pointer - CRITICAL: The string at index 2 must remain
+     * on the stack during multipart_parser_execute() because:
+     * 1. Callbacks may trigger Lua GC via lua_pcall()
+     * 2. GC safety: As long as the string stays on stack, it won't be collected
+     * 3. The 'data' pointer remains valid throughout execution
+     * We explicitly do NOT pop the string before multipart_parser_execute completes.
+     */
     data = luaL_checklstring(L, 2, &len);
 
     if (!lmp->parser) {
         return luaL_error(L, "Parser already freed");
     }
 
+    /* Execute parser - the 'data' pointer is safe because index 2 is still on stack */
     parsed = multipart_parser_execute(lmp->parser, data, len);
 
     lua_pushinteger(L, parsed);
