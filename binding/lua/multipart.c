@@ -573,10 +573,23 @@ static luaL_Reg const parser_methods[] = {
  * Simple/Fast Parse Interface (uvs_multipart_parse compatible)
  * ======================================================================== */
 
+/* Structure for simple parse with progress callback */
+typedef struct {
+  lua_State* L;
+  int progress_ref;  /* Reference to progress callback, or LUA_NOREF */
+  size_t total_size;
+  size_t parsed_so_far;
+  int interrupted;   /* Set to 1 if parsing should be interrupted */
+} simple_parse_context;
+
+/* Forward declarations */
+static int simple_read_part_data(multipart_parser* p, char const* at, size_t length);
+
 /* Simple callback: read header field name */
 static int simple_read_header_field(multipart_parser* p, char const* at,
                                     size_t length) {
-  lua_State* L = (lua_State*)multipart_parser_get_data(p);
+  simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
+  lua_State* L = ctx->L;
 
   /* Ensure enough stack space (see stack requirements in file header) */
   if (!lua_checkstack(L, 2)) {
@@ -590,7 +603,8 @@ static int simple_read_header_field(multipart_parser* p, char const* at,
 /* Simple callback: read header value and store key-value pair */
 static int simple_read_header_value(multipart_parser* p, char const* at,
                                     size_t length) {
-  lua_State* L = (lua_State*)multipart_parser_get_data(p);
+  simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
+  lua_State* L = ctx->L;
 
   /* Ensure enough stack space (see stack requirements in file header) */
   if (!lua_checkstack(L, 2)) {
@@ -606,7 +620,8 @@ static int simple_read_header_value(multipart_parser* p, char const* at,
 static int simple_read_part_data(multipart_parser* p, char const* at,
                                  size_t length) {
   size_t idx;
-  lua_State* L = (lua_State*)multipart_parser_get_data(p);
+  simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
+  lua_State* L = ctx->L;
 
   /* Ensure enough stack space (see stack requirements in file header) */
   if (!lua_checkstack(L, 2)) {
@@ -619,9 +634,55 @@ static int simple_read_part_data(multipart_parser* p, char const* at,
   return 0;
 }
 
+/* M3: Progress callback wrapper */
+static int simple_progress_callback(multipart_parser* p, char const* at, size_t length) {
+  simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
+  lua_State* L = ctx->L;
+  
+  /* Update progress */
+  ctx->parsed_so_far += length;
+  
+  /* Call progress callback if set */
+  if (ctx->progress_ref != LUA_NOREF) {
+    /* Ensure enough stack space */
+    if (!lua_checkstack(L, 5)) {
+      return -1;
+    }
+    
+    /* Get callback function */
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->progress_ref);
+    
+    /* Push arguments: parsed_bytes, total_bytes, progress_percent */
+    lua_pushinteger(L, (lua_Integer)ctx->parsed_so_far);
+    lua_pushinteger(L, (lua_Integer)ctx->total_size);
+    lua_pushnumber(L, (double)ctx->parsed_so_far / (double)ctx->total_size * 100.0);
+    
+    /* Call callback */
+    if (lua_pcall(L, 3, 1, 0) != 0) {
+      /* Error in callback - stop parsing */
+      lua_pop(L, 1);
+      ctx->interrupted = 1;
+      return -1;
+    }
+    
+    /* Check return value - non-zero means interrupt */
+    if (lua_isnumber(L, -1) && lua_tointeger(L, -1) != 0) {
+      ctx->interrupted = 1;
+      lua_pop(L, 1);
+      return -1;  /* Interrupt parsing */
+    }
+    
+    lua_pop(L, 1);
+  }
+  
+  /* Continue to actual data handler */
+  return simple_read_part_data(p, at, length);
+}
+
 /* Simple callback: begin new part - create table for it */
 static int simple_on_part_data_begin(multipart_parser* p) {
-  lua_State* L = (lua_State*)multipart_parser_get_data(p);
+  simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
+  lua_State* L = ctx->L;
 
   /* Ensure enough stack space (see stack requirements in file header) */
   if (!lua_checkstack(L, 2)) {
@@ -635,7 +696,8 @@ static int simple_on_part_data_begin(multipart_parser* p) {
 /* Simple callback: end part - add to parts array */
 static int simple_on_part_data_end(multipart_parser* p) {
   size_t idx;
-  lua_State* L = (lua_State*)multipart_parser_get_data(p);
+  simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
+  lua_State* L = ctx->L;
 
   /* Ensure enough stack space (see stack requirements in file header) */
   if (!lua_checkstack(L, 2)) {
@@ -647,8 +709,13 @@ static int simple_on_part_data_end(multipart_parser* p) {
   return 0;
 }
 
-/* Simple parse function: multipart_parser.parse(boundary, body) -> table or
- * (nil, error) */
+/* M3: Simple parse function with optional progress callback
+ * Usage:
+ *   multipart_parser.parse(boundary, body) -> table or (nil, error)
+ *   multipart_parser.parse(boundary, body, progress_callback) -> table or (nil, error, "interrupted")
+ *
+ * progress_callback(parsed_bytes, total_bytes, percent) -> 0 to continue, non-zero to interrupt
+ */
 static int lmp_parse(lua_State* L) {
   char const* boundary;
   char const* body;
@@ -656,29 +723,53 @@ static int lmp_parse(lua_State* L) {
   multipart_parser* parser;
   multipart_parser_settings settings;
   size_t parsed;
+  simple_parse_context ctx;
 
   /* Get arguments */
   boundary = luaL_checkstring(L, 1);
   body = luaL_checklstring(L, 2, &length);
+  
+  /* Check for optional progress callback (3rd argument) */
+  ctx.L = L;
+  ctx.progress_ref = LUA_NOREF;
+  ctx.total_size = length;
+  ctx.parsed_so_far = 0;
+  ctx.interrupted = 0;
+  
+  if (!lua_isnoneornil(L, 3)) {
+    luaL_checktype(L, 3, LUA_TFUNCTION);
+    lua_pushvalue(L, 3);  /* Copy function to top */
+    ctx.progress_ref = luaL_ref(L, LUA_REGISTRYINDEX);  /* Store reference */
+  }
 
   /* Setup simple callbacks */
   memset(&settings, 0, sizeof(multipart_parser_settings));
   settings.on_header_field = simple_read_header_field;
   settings.on_header_value = simple_read_header_value;
-  settings.on_part_data = simple_read_part_data;
+  
+  /* Use progress callback wrapper if progress callback is set */
+  if (ctx.progress_ref != LUA_NOREF) {
+    settings.on_part_data = simple_progress_callback;
+  } else {
+    settings.on_part_data = simple_read_part_data;
+  }
+  
   settings.on_part_data_begin = simple_on_part_data_begin;
   settings.on_part_data_end = simple_on_part_data_end;
 
   /* Create parser */
   parser = multipart_parser_init(boundary, &settings);
   if (!parser) {
+    if (ctx.progress_ref != LUA_NOREF) {
+      luaL_unref(L, LUA_REGISTRYINDEX, ctx.progress_ref);
+    }
     lua_pushnil(L);
     lua_pushstring(L, "Failed to initialize parser");
     return 2;
   }
 
-  /* Set Lua state as user data */
-  multipart_parser_set_data(parser, L);
+  /* Set context as user data */
+  multipart_parser_set_data(parser, &ctx);
 
   /* Create result table */
   lua_createtable(L, 4, 4);
@@ -686,11 +777,23 @@ static int lmp_parse(lua_State* L) {
   /* Parse */
   parsed = multipart_parser_execute(parser, body, length);
 
+  /* Clean up progress callback reference */
+  if (ctx.progress_ref != LUA_NOREF) {
+    luaL_unref(L, LUA_REGISTRYINDEX, ctx.progress_ref);
+  }
+
   /* Check result */
   if (parsed == length) {
     /* Success - result table is on stack */
     multipart_parser_free(parser);
     return 1;
+  } else if (ctx.interrupted) {
+    /* M3: Interrupted by progress callback */
+    multipart_parser_free(parser);
+    lua_pushnil(L);
+    lua_pushstring(L, "Parsing interrupted by progress callback");
+    lua_pushstring(L, "interrupted");
+    return 3;
   } else {
     /* Error - return nil and error position */
     char const* errmsg = multipart_parser_get_error_message(parser);

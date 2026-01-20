@@ -51,5 +51,6 @@ test: $(TARGET)
 	luajit test_improvements.lua || lua test_improvements.lua
 	luajit test_m1_m2.lua || lua test_m1_m2.lua
 	luajit test_m4_streaming.lua || lua test_m4_streaming.lua
+	luajit test_m3_simple_parse.lua || lua test_m3_simple_parse.lua
 
 .PHONY: all install clean test
