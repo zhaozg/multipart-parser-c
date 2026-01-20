@@ -3,19 +3,7 @@
 
 -- Try to load from current directory first, then system paths
 local function load_module()
-package.cpath = package.cpath .. ";../?.so"
-  local paths = {
-    "./?.so",
-    "./binding/lua/?.so",
-  }
-
-  local new_cpath = original_cpath
-  for _, path in ipairs(paths) do
-    if not new_cpath:find(path, 1, true) then
-      new_cpath = path .. ";" .. new_cpath
-    end
-  end
-  package.cpath = new_cpath
+  package.cpath = package.cpath .. ";../?.so;binding/lua/?.so"
 end
 
 load_module()
@@ -207,9 +195,40 @@ local function test_incremental_parsing()
   test_start("Incremental parsing accumulates correctly")
 
   local total_data = ""
+  local headers, header = {}, {}
+  local key, cur
   local callbacks = {
+    on_part_data_begin = function()
+      header = {}
+    end,
+
+    on_header_field = function(data)
+      key = key and key .. data or data
+      cur = key
+      return 0
+    end,
+
+    on_header_value = function(data)
+      key = nil
+      header[cur] = header[cur] and header[cur]..data or data
+      return 0
+    end,
+
+    on_headers_complete = function()
+      headers[#headers + 1] = header
+      return 0
+    end,
+
     on_part_data = function(data)
       total_data = total_data .. data
+      return 0
+    end,
+
+    on_part_data_end = function()
+      return 0
+    end,
+
+    on_body_end = function()
       return 0
     end,
   }
@@ -218,12 +237,16 @@ local function test_incremental_parsing()
 
   -- Build multipart data incrementally
   parser:feed("--boundary\r\n")
-  parser:feed("Content-Type: text/plain\r\n")
+  parser:feed("Content")
+  parser:feed("-Type: text/")
+  parser:feed("plain\r\n")
   parser:feed("\r\n")
   parser:feed("Part")
   parser:feed(" One")
   parser:feed("\r\n--boundary\r\n")
-  parser:feed("Content-Type: text/plain\r\n")
+  parser:feed("Content-Type: text/")
+  parser:feed("plain")
+  parser:feed("\r\n")
   parser:feed("\r\n")
   parser:feed("Part Two")
   parser:feed("\r\n--boundary--")
@@ -237,6 +260,27 @@ local function test_incremental_parsing()
 
   if not total_data:find("Part Two") then
     test_fail("Second part not found")
+    parser:free()
+    return
+  end
+
+  if #headers ~=2 then
+    test_fail(string.format("Expected 2 headers, got %d", #headers))
+    parser:free()
+    return
+  end
+  print(require('inspect')(headers))
+  if headers[1]["Content-Type"] ~= "text/plain" then
+    test_fail("First header Content-Type incorrect")
+    print(" Expected: text/plain")
+    print("  But got: " .. headers[1]["Content-Type"])
+    parser:free()
+    return
+  end
+  if headers[2]["Content-Type"] ~= "text/plain" then
+    test_fail("Second header Content-Type incorrect")
+    print(" Expected: text/plain")
+    print("  But got: " .. headers[2]["Content-Type"])
     parser:free()
     return
   end
