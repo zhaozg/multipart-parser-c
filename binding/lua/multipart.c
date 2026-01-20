@@ -67,13 +67,16 @@ static int get_callback(lua_State* L, int ref, char const* name) {
 /* Helper function to store Lua callback error
  * Note: snprintf is safe and will not overflow the buffer - it automatically
  * truncates if the formatted string exceeds the buffer size.
+ * The callback_name parameter is always a short string literal (e.g., "on_header_field"),
+ * so buffer overflow is not a concern in practice.
  */
 static void store_callback_error(lua_multipart_parser* lmp, lua_State* L, char const* callback_name) {
   char const* err = lua_tostring(L, -1);
   if (err) {
-    snprintf(lmp->last_error, sizeof(lmp->last_error), "%s: %s", callback_name, err);
+    /* Reserve space for callback name (max 30 chars) + ": " + error message */
+    snprintf(lmp->last_error, sizeof(lmp->last_error), "%.30s: %s", callback_name, err);
   } else {
-    snprintf(lmp->last_error, sizeof(lmp->last_error), "%s: unknown error", callback_name);
+    snprintf(lmp->last_error, sizeof(lmp->last_error), "%.30s: unknown error", callback_name);
   }
 }
 

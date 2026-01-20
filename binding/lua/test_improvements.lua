@@ -4,14 +4,20 @@
 
 -- Try to load from current directory first, then system paths
 local function load_module()
+  local original_cpath = package.cpath
   local paths = {
     "./?.so",  -- Current directory
     "./binding/lua/?.so",  -- From repository root
-    package.cpath  -- System paths
   }
+  
+  -- Prepend our paths to the original cpath (avoiding duplicates)
+  local new_cpath = original_cpath
   for _, path in ipairs(paths) do
-    package.cpath = path .. ";" .. package.cpath
+    if not new_cpath:find(path, 1, true) then
+      new_cpath = path .. ";" .. new_cpath
+    end
   end
+  package.cpath = new_cpath
 end
 
 load_module()
