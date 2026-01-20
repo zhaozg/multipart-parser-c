@@ -3,7 +3,7 @@
   Test for processing large multipart data (simulating >4GB)
   This test simulates processing large amounts of data without actually
   creating 4GB of data in memory by reusing chunks.
-
+package.cpath = package.cpath .. ";../?.so"
   It tests the GC safety issue where lua_pcall in callbacks might
   trigger GC and invalidate the data pointer.
 ]]

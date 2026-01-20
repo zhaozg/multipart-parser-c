@@ -3,7 +3,7 @@
 -- Compatible with Lua 5.1+ and LuaJIT 2.0+
 
 -- Add the binding directory to package.cpath
-package.cpath = package.cpath .. ";./binding/lua/?.so"
+package.cpath = package.cpath .. ";../?.so"
 
 local mp = require("multipart_parser")
 
