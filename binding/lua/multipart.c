@@ -8,11 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <stdio.h>
+#include <stdio.h>  /* For snprintf in error handling */
 #include "multipart_parser.h"
 
 #define MULTIPART_PARSER_MT "multipart_parser"
 #define LMP_ERROR_BUFFER_SIZE 256
+#define LMP_MAX_CALLBACK_NAME_LENGTH 30  /* Max length for callback names in error messages */
 
 /* Lua 5.1 compatibility - only for non-LuaJIT Lua 5.1 */
 #if defined(LUA_VERSION_NUM) && LUA_VERSION_NUM == 501 && \
@@ -68,15 +69,17 @@ static int get_callback(lua_State* L, int ref, char const* name) {
  * Note: snprintf is safe and will not overflow the buffer - it automatically
  * truncates if the formatted string exceeds the buffer size.
  * The callback_name parameter is always a short string literal (e.g., "on_header_field"),
- * so buffer overflow is not a concern in practice.
+ * so buffer overflow is not a concern in practice. The precision specifier ensures
+ * callback names don't consume the entire buffer.
  */
 static void store_callback_error(lua_multipart_parser* lmp, lua_State* L, char const* callback_name) {
   char const* err = lua_tostring(L, -1);
   if (err) {
-    /* Reserve space for callback name (max 30 chars) + ": " + error message */
-    snprintf(lmp->last_error, sizeof(lmp->last_error), "%.30s: %s", callback_name, err);
+    snprintf(lmp->last_error, sizeof(lmp->last_error), "%.*s: %s", 
+             LMP_MAX_CALLBACK_NAME_LENGTH, callback_name, err);
   } else {
-    snprintf(lmp->last_error, sizeof(lmp->last_error), "%.30s: unknown error", callback_name);
+    snprintf(lmp->last_error, sizeof(lmp->last_error), "%.*s: unknown error", 
+             LMP_MAX_CALLBACK_NAME_LENGTH, callback_name);
   }
 }
 
