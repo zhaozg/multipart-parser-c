@@ -47,5 +47,6 @@ clean:
 test: $(TARGET)
 	@echo "Running Lua tests..."
 	luajit test.lua || lua test.lua
+	luajit test_large_data.lua || lua test_large_data.lua
 
 .PHONY: all install clean test

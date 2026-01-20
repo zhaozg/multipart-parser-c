@@ -7,16 +7,8 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <string.h>
-#include "multipart_parser.h"
-
-#if 1
 #include <assert.h>
-#define GETTOP int top = lua_gettop(L);
-#define CHECKTOP assert(top == lua_gettop(L));
-#else
-#define GETTOP
-#define CHECKTOP
-#endif
+#include "multipart_parser.h"
 
 #define MULTIPART_PARSER_MT "multipart_parser"
 
@@ -55,7 +47,6 @@ static int get_callback(lua_State* L, int ref, char const* name) {
     return 0;
   }
 
-  GETTOP
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
   if (lua_isnil(L, -1)) {
     lua_pop(L, 1);
@@ -67,7 +58,6 @@ static int get_callback(lua_State* L, int ref, char const* name) {
     return 1;
   }
   lua_pop(L, 2);
-  CHECKTOP
   return 0;
 }
 
