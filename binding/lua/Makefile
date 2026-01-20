@@ -49,5 +49,6 @@ test: $(TARGET)
 	luajit test.lua || lua test.lua
 	luajit test_large_data.lua || lua test_large_data.lua
 	luajit test_improvements.lua || lua test_improvements.lua
+	luajit test_m1_m2.lua || lua test_m1_m2.lua
 
 .PHONY: all install clean test
