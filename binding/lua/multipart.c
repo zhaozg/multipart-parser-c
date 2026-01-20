@@ -63,6 +63,16 @@ static int get_callback(lua_State* L, int ref, char const* name) {
   return 0;
 }
 
+/* Helper function to store Lua callback error */
+static void store_callback_error(lua_multipart_parser* lmp, lua_State* L, char const* callback_name) {
+  char const* err = lua_tostring(L, -1);
+  if (err) {
+    snprintf(lmp->last_error, sizeof(lmp->last_error), "%s: %s", callback_name, err);
+  } else {
+    snprintf(lmp->last_error, sizeof(lmp->last_error), "%s: unknown error", callback_name);
+  }
+}
+
 /* Callback implementations */
 static int on_header_field_cb(multipart_parser* p, char const* at,
                               size_t length) {
@@ -85,13 +95,7 @@ static int on_header_field_cb(multipart_parser* p, char const* at,
 
   lua_pushlstring(L, at, length);
   if (lua_pcall(L, 1, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_header_field: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_header_field: unknown error");
-    }
+    store_callback_error(lmp, L, "on_header_field");
     lua_pop(L, 1);
     return -1;
   }
@@ -121,13 +125,7 @@ static int on_header_value_cb(multipart_parser* p, char const* at,
 
   lua_pushlstring(L, at, length);
   if (lua_pcall(L, 1, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_header_value: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_header_value: unknown error");
-    }
+    store_callback_error(lmp, L, "on_header_value");
     lua_pop(L, 1);
     return -1;
   }
@@ -156,13 +154,7 @@ static int on_part_data_cb(multipart_parser* p, char const* at, size_t length) {
 
   lua_pushlstring(L, at, length);
   if (lua_pcall(L, 1, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_part_data: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_part_data: unknown error");
-    }
+    store_callback_error(lmp, L, "on_part_data");
     lua_pop(L, 1);
     return -1;
   }
@@ -190,13 +182,7 @@ static int on_part_data_begin_cb(multipart_parser* p) {
   if (!get_callback(L, lmp->callbacks_ref, "on_part_data_begin")) return 0;
 
   if (lua_pcall(L, 0, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_part_data_begin: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_part_data_begin: unknown error");
-    }
+    store_callback_error(lmp, L, "on_part_data_begin");
     lua_pop(L, 1);
     return -1;
   }
@@ -224,13 +210,7 @@ static int on_headers_complete_cb(multipart_parser* p) {
   if (!get_callback(L, lmp->callbacks_ref, "on_headers_complete")) return 0;
 
   if (lua_pcall(L, 0, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_headers_complete: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_headers_complete: unknown error");
-    }
+    store_callback_error(lmp, L, "on_headers_complete");
     lua_pop(L, 1);
     return -1;
   }
@@ -258,13 +238,7 @@ static int on_part_data_end_cb(multipart_parser* p) {
   if (!get_callback(L, lmp->callbacks_ref, "on_part_data_end")) return 0;
 
   if (lua_pcall(L, 0, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_part_data_end: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_part_data_end: unknown error");
-    }
+    store_callback_error(lmp, L, "on_part_data_end");
     lua_pop(L, 1);
     return -1;
   }
@@ -292,13 +266,7 @@ static int on_body_end_cb(multipart_parser* p) {
   if (!get_callback(L, lmp->callbacks_ref, "on_body_end")) return 0;
 
   if (lua_pcall(L, 0, 1, 0) != 0) {
-    /* Store error message */
-    char const* err = lua_tostring(L, -1);
-    if (err) {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_body_end: %s", err);
-    } else {
-      snprintf(lmp->last_error, sizeof(lmp->last_error), "on_body_end: unknown error");
-    }
+    store_callback_error(lmp, L, "on_body_end");
     lua_pop(L, 1);
     return -1;
   }
