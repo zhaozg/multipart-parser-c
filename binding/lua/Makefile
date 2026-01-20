@@ -45,12 +45,35 @@ clean:
 
 # Test target
 test: $(TARGET)
-	@echo "Running Lua tests..."
-	luajit test.lua || lua test.lua
-	luajit test_large_data.lua || lua test_large_data.lua
-	luajit test_improvements.lua || lua test_improvements.lua
-	luajit test_m1_m2.lua || lua test_m1_m2.lua
-	luajit test_m4_streaming.lua || lua test_m4_streaming.lua
-	luajit test_m3_simple_parse.lua || lua test_m3_simple_parse.lua
+	@echo "=========================================="
+	@echo "Running Multipart Parser Lua Tests"
+	@echo "=========================================="
+	@cd tests && luajit run_all_tests.lua || lua run_all_tests.lua
 
-.PHONY: all install clean test
+# Run individual test suites
+test-core: $(TARGET)
+	@cd tests && (luajit test_core.lua || lua test_core.lua)
+
+test-h1-h2: $(TARGET)
+	@cd tests && (luajit test_h1_h2_memory_errors.lua || lua test_h1_h2_memory_errors.lua)
+
+test-m1-m2: $(TARGET)
+	@cd tests && (luajit test_m1_m2_limits_stats.lua || lua test_m1_m2_limits_stats.lua)
+
+test-m3: $(TARGET)
+	@cd tests && (luajit test_m3_simple_parse.lua || lua test_m3_simple_parse.lua)
+
+test-m4: $(TARGET)
+	@cd tests && (luajit test_m4_streaming.lua || lua test_m4_streaming.lua)
+
+test-large: $(TARGET)
+	@cd tests && (luajit test_large_data.lua || lua test_large_data.lua)
+
+# Run examples
+example-basic: $(TARGET)
+	@cd examples && luajit basic_usage.lua
+
+example-streaming: $(TARGET)
+	@cd examples && luajit streaming_usage.lua
+
+.PHONY: all install clean test test-core test-h1-h2 test-m1-m2 test-m3 test-m4 test-large example-basic example-streaming
