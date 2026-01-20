@@ -48,5 +48,6 @@ test: $(TARGET)
 	@echo "Running Lua tests..."
 	luajit test.lua || lua test.lua
 	luajit test_large_data.lua || lua test_large_data.lua
+	luajit test_improvements.lua || lua test_improvements.lua
 
 .PHONY: all install clean test
