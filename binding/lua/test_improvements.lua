@@ -331,7 +331,12 @@ local function test_error_handling_robustness()
     return
   end
   
-  if not (err:match("on_part_data") and (err:match("unknown error") or err:match("table"))) then
+  -- Error should contain callback name
+  local has_callback_name = err:match("on_part_data") ~= nil
+  -- And should contain either "unknown error" or "table" (from error object)
+  local has_error_info = err:match("unknown error") ~= nil or err:match("table") ~= nil
+  
+  if not (has_callback_name and has_error_info) then
     test_fail("Expected error message with callback name, got: " .. err)
     parser:free()
     return

@@ -64,7 +64,10 @@ static int get_callback(lua_State* L, int ref, char const* name) {
   return 0;
 }
 
-/* Helper function to store Lua callback error */
+/* Helper function to store Lua callback error
+ * Note: snprintf is safe and will not overflow the buffer - it automatically
+ * truncates if the formatted string exceeds the buffer size.
+ */
 static void store_callback_error(lua_multipart_parser* lmp, lua_State* L, char const* callback_name) {
   char const* err = lua_tostring(L, -1);
   if (err) {
