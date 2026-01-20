@@ -2,9 +2,19 @@
 -- Test suite for Lua binding improvements (H1 & H2)
 -- Tests memory leak fixes and error handling enhancements
 
--- Add the binding directory to package.cpath
-package.cpath = package.cpath .. ";./binding/lua/?.so"
+-- Try to load from current directory first, then system paths
+local function load_module()
+  local paths = {
+    "./?.so",  -- Current directory
+    "./binding/lua/?.so",  -- From repository root
+    package.cpath  -- System paths
+  }
+  for _, path in ipairs(paths) do
+    package.cpath = path .. ";" .. package.cpath
+  end
+end
 
+load_module()
 local mp = require("multipart_parser")
 
 -- Test results tracking

@@ -12,6 +12,7 @@
 #include "multipart_parser.h"
 
 #define MULTIPART_PARSER_MT "multipart_parser"
+#define LMP_ERROR_BUFFER_SIZE 256
 
 /* Lua 5.1 compatibility - only for non-LuaJIT Lua 5.1 */
 #if defined(LUA_VERSION_NUM) && LUA_VERSION_NUM == 501 && \
@@ -35,7 +36,7 @@ typedef struct {
   lua_State* L;
   int callbacks_ref;
   multipart_parser_settings settings;
-  char last_error[256];  /* Store last Lua callback error */
+  char last_error[LMP_ERROR_BUFFER_SIZE];  /* Store last Lua callback error */
 } lua_multipart_parser;
 
 /* Helper to get callback function from table */
