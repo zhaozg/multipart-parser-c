@@ -560,6 +560,7 @@ static int lmp_get_stats(lua_State* L) {
 /* Metatable methods */
 static luaL_Reg const parser_methods[] = {
     {"execute", lmp_execute},
+    {"feed", lmp_execute},  /* M4: Alias for execute, clearer for streaming use */
     {"get_error", lmp_get_error},
     {"get_error_message", lmp_get_error_message},
     {"get_last_lua_error", lmp_get_last_lua_error},
