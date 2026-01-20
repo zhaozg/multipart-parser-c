@@ -10,7 +10,7 @@ local function load_module()
     "./?.so",
     "../?.so",
   }
-  
+
   local new_cpath = original_cpath
   for _, path in ipairs(paths) do
     if not new_cpath:find(path, 1, true) then
@@ -48,26 +48,26 @@ print()
 -- Run each test suite
 for _, suite in ipairs(test_suites) do
   total_suites = total_suites + 1
-  
+
   print(string.format("Running: %s", suite.name))
   print(string.rep("-", 70))
-  
+
   local cmd = string.format("luajit %s 2>&1", suite.file)
   local handle = io.popen(cmd)
   local output = handle:read("*a")
   local success = handle:close()
-  
+
   -- Parse test results from output
   local tests_run = output:match("Tests run: (%d+)") or "?"
   local tests_passed = output:match("Tests passed: (%d+)") or "?"
   local tests_failed = output:match("Tests failed: (%d+)") or "?"
-  
+
   if tests_run ~= "?" then
     total_tests = total_tests + tonumber(tests_run)
     total_passed = total_passed + tonumber(tests_passed)
     total_failed = total_failed + tonumber(tests_failed)
   end
-  
+
   if success then
     passed_suites = passed_suites + 1
     print(string.format("✓ PASSED: %s tests passed, %s failed", tests_passed, tests_failed))
@@ -77,7 +77,7 @@ for _, suite in ipairs(test_suites) do
     print("\nOutput:")
     print(output)
   end
-  
+
   print()
 end
 

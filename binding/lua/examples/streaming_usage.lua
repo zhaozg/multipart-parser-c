@@ -10,7 +10,7 @@ local function load_module()
     "./?.so",
     "./binding/lua/?.so",
   }
-  
+
   local new_cpath = original_cpath
   for _, path in ipairs(paths) do
     if not new_cpath:find(path, 1, true) then
@@ -38,22 +38,22 @@ local callbacks = {
     print(string.format("  Starting part %d", part_count))
     return 0  -- Continue processing
   end,
-  
+
   on_header_field = function(data)
     print(string.format("  Header field: %s", data))
     return 0
   end,
-  
+
   on_header_value = function(data)
     print(string.format("  Header value: %s", data))
     return 0
   end,
-  
+
   on_part_data = function(data)
     print(string.format("  Part data chunk (%d bytes): %s", #data, data:sub(1, 20)))
     return 0
   end,
-  
+
   on_part_data_end = function()
     print(string.format("  Finished part %d", part_count))
     return 0
@@ -103,14 +103,14 @@ local pause_callbacks = {
   on_part_data = function(data)
     total_data_processed = total_data_processed + #data
     print(string.format("  Processing %d bytes (total: %d)", #data, total_data_processed))
-    
+
     -- Pause after processing some data
     if not paused and total_data_processed >= pause_after_bytes then
       print("  >>> PAUSING parser (callback returning 1)")
       paused = true
       return 1  -- Non-zero return value pauses the parser
     end
-    
+
     return 0  -- Continue
   end,
 }
@@ -137,23 +137,23 @@ print(string.format("Parser error message: %s", err_msg))
 if err == mp.ERROR.PAUSED then
   print("\n>>> Parser is PAUSED as expected")
   print(string.format(">>> To resume, feed the remaining data starting from byte %d", parsed + 1))
-  
+
   -- Reset pause flag and continue processing remaining data
   paused = false
-  
+
   -- Resume by feeding remaining data
   local remaining = test_data:sub(parsed + 1)
   print(string.format("\nResuming with remaining %d bytes...", #remaining))
-  
+
   -- Reset the parser to clear the PAUSED state (or create new parser)
   parser2:reset()
   parser2 = mp.new("boundary", pause_callbacks)
-  
+
   -- Now feed all the data again without pausing
   pause_after_bytes = 999999  -- Don't pause this time
   local parsed2 = parser2:feed(test_data)
   print(string.format("Parsed %d bytes on second attempt (complete)", parsed2))
-  
+
   local err2 = parser2:get_error()
   if err2 == mp.MPPE_OK then
     print(">>> Parser completed successfully after reset and reprocess")
@@ -174,22 +174,22 @@ local function simulate_network_stream(parser, total_size, chunk_size)
     "\r\n" ..
     string.rep("Network data chunk... ", 50) .. "\r\n" ..
     "--testboundary--"
-  
+
   print(string.format("Simulating network stream: %d bytes in %d-byte chunks", #full_data, chunk_size))
-  
+
   local offset = 1
   local chunk_num = 0
-  
+
   while offset <= #full_data do
     local chunk_end = math.min(offset + chunk_size - 1, #full_data)
     local chunk = full_data:sub(offset, chunk_end)
     chunk_num = chunk_num + 1
-    
-    print(string.format("  Chunk %d: bytes %d-%d (%d bytes)", 
+
+    print(string.format("  Chunk %d: bytes %d-%d (%d bytes)",
           chunk_num, offset, chunk_end, #chunk))
-    
+
     local parsed = parser:feed(chunk)
-    
+
     -- Check for errors
     local err = parser:get_error()
     if err ~= mp.MPPE_OK and err ~= mp.MPPE_PAUSED then
@@ -197,21 +197,21 @@ local function simulate_network_stream(parser, total_size, chunk_size)
       print(string.format("  ERROR: %s", err_msg))
       return false
     end
-    
+
     -- Check for Lua callback errors
     local lua_err = parser:get_last_lua_error()
     if lua_err then
       print(string.format("  CALLBACK ERROR: %s", lua_err))
       return false
     end
-    
+
     if parsed < #chunk then
       print(string.format("  Warning: Only parsed %d of %d bytes", parsed, #chunk))
     end
-    
+
     offset = offset + parsed
   end
-  
+
   print("  Stream processing completed successfully")
   return true
 end
@@ -267,7 +267,7 @@ if lua_err and lua_err:match("Memory limit exceeded") then
 end
 
 local stats = parser4:get_stats()
-print(string.format("Memory stats: current=%d, max=%d", 
+print(string.format("Memory stats: current=%d, max=%d",
       stats.current_memory, stats.max_memory))
 
 parser4:free()
