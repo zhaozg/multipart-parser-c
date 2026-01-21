@@ -22,14 +22,6 @@ This directory contains comprehensive tests for the Lua binding of multipart-par
    - Parser reset with new boundary
    - Parser reset keeping same boundary
    - Parser reset clears error state
-   - Memory limit parameters
-   - Memory limit enforcement
-   - Memory tracking
-   - Parser reset with new boundary
-   - Parser reset keeping same boundary
-   - Parser reset clearing error state
-   - Streaming with memory limits
-   - Memory leak verification
 
 3. **test_streaming.lua** - Streaming & progress callback tests (14 tests)
    - Progress callbacks

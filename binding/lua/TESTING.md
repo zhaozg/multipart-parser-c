@@ -43,12 +43,6 @@ binding/lua/
    - Parser reset with new boundary
    - Parser reset keeping same boundary
    - Parser reset clears error state
-   - Memory limit parameters and enforcement
-   - Memory tracking (with/without limits)
-   - Parser reset with new/same boundary
-   - Parser reset clearing error state
-   - Streaming with memory limits
-   - Memory leak verification
 
 3. **Streaming & Progress Callbacks** (test_streaming.lua - 14 tests)
    - Progress callback functionality
