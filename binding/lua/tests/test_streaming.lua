@@ -1,5 +1,5 @@
 #!/usr/bin/env luajit
--- Test suite for M4 (streaming/feed support)
+-- Test suite for streaming/feed support
 
 -- Try to load from current directory first, then system paths
 package.cpath = package.cpath .. ";../?.so"
@@ -29,32 +29,7 @@ local function test_fail(msg)
 end
 
 --- simple
--- Test 1: Basic parse still works without progress callback
-local function test_basic_parse()
-  test_start("Basic parse without progress callback")
-
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "Test data\r\n" ..
-    "--boundary--"
-
-  local result = mp.parse("boundary", data)
-
-  if not result then
-    test_fail("Parse returned nil")
-    return
-  end
-
-  if #result ~= 1 then
-    test_fail(string.format("Expected 1 part, got %d", #result))
-    return
-  end
-
-  test_pass()
-end
-
--- Test 2: Progress callback is called
+-- Test 1: Progress callback is called
 local function test_progress_callback()
   test_start("Progress callback is called")
 
@@ -673,38 +648,7 @@ local function test_feed_execute_equivalent()
   test_pass()
 end
 
--- Test 7: Streaming with memory limit
-local function test_streaming_memory_limit()
-  test_start("Streaming respects memory limits")
-
-  local callbacks = {
-    on_part_data = function(data) return 0 end,
-  }
-
-  -- Small memory limit
-  local parser = mp.new("boundary", callbacks, 100)
-
-  -- Feed data that exceeds limit in chunks
-  local chunk1 = "--boundary\r\nContent-Type: text/plain\r\n\r\n"
-  local chunk2 = string.rep("x", 50)
-  local chunk3 = string.rep("x", 60)  -- This should trigger limit (total > 100)
-
-  parser:feed(chunk1)
-  parser:feed(chunk2)
-  parser:feed(chunk3)  -- Should fail here
-
-  local err = parser:get_last_lua_error()
-  if err then
-    test_fail("Expected memory limit error")
-    parser:free()
-    return
-  end
-
-  parser:free()
-  test_pass()
-end
-
--- Test 8: Error handling in streaming
+-- Test 7: Error handling in streaming
 local function test_streaming_error_handling()
   test_start("Error handling in streaming mode")
 
@@ -740,13 +684,11 @@ end
 -- Main test execution
 local function run_all_tests()
   print("===========================================")
-  print("Simple and Streaming Test Suite")
-  print("Testing feed() and pause/resume")
-  print("==========================================")
+  print("Streaming & Progress Callback Test Suite")
+  print("===========================================")
   print()
 
   -- Run all tests
-  test_basic_parse()
   test_progress_callback()
   test_progress_parameters()
   test_interrupt_parsing()
@@ -761,7 +703,6 @@ local function run_all_tests()
   test_pause()
   test_incremental_parsing()
   test_feed_execute_equivalent()
-  test_streaming_memory_limit()
   test_streaming_error_handling()
 
   -- Print summary

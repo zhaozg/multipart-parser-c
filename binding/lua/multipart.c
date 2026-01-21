@@ -434,7 +434,7 @@ static int lmp_free(lua_State* L) {
 /* Metatable methods */
 static luaL_Reg const parser_methods[] = {
     {"execute", lmp_execute},
-    {"feed", lmp_execute},  /* M4: Alias for execute, clearer for streaming use */
+    {"feed", lmp_execute},  /* Alias for execute, clearer for streaming use */
     {"get_error", lmp_get_error},
     {"get_error_message", lmp_get_error_message},
     {"get_last_lua_error", lmp_get_last_lua_error},
@@ -492,7 +492,7 @@ static int simple_read_part_data(multipart_parser* p, char const* at,
   return 0;
 }
 
-/* M3: Progress callback wrapper */
+/* Progress callback wrapper */
 static int simple_progress_callback(multipart_parser* p, char const* at, size_t length) {
   simple_parse_context* ctx = (simple_parse_context*)multipart_parser_get_data(p);
   lua_State* L = ctx->L;
@@ -552,7 +552,7 @@ static int simple_on_part_data_end(multipart_parser* p) {
   return 0;
 }
 
-/* M3: Simple parse function with optional progress callback
+/* Simple parse function with optional progress callback
  * Usage:
  *   multipart_parser.parse(boundary, body) -> table or (nil, error)
  *   multipart_parser.parse(boundary, body, progress_callback) -> table or (nil, error, "interrupted")
@@ -631,7 +631,7 @@ static int lmp_parse(lua_State* L) {
     multipart_parser_free(parser);
     return 1;
   } else if (ctx.interrupted) {
-    /* M3: Interrupted by progress callback */
+    /* Interrupted by progress callback */
     multipart_parser_free(parser);
     lua_pushnil(L);
     lua_pushstring(L, "Parsing interrupted by progress callback");

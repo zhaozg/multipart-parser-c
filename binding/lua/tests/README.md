@@ -6,22 +6,38 @@ This directory contains comprehensive tests for the Lua binding of multipart-par
 
 ### Test Suites
 
-1. **test_core.lua** - Core functionality tests (23 tests)
-   - Basic parser creation and usage
-   - Callback mechanisms
-   - Simple parse function
+1. **test_core.lua** - Core parsing & error handling tests (27 tests)
+   - Module loading and version
+   - Parser initialization
+   - Basic parsing with callbacks
+   - Multi-part parsing
    - Binary data handling
-   - Error cases
+   - Callback mechanisms (pause/resume)
+   - Header accumulation
+   - UTF-8 data
+   - Simple parse function
+   - Error handling (callback errors, error state)
 
-2. **test_large_data.lua** - Large data handling tests
+2. **test_state.lua** - State management tests (3 tests)
+   - Parser reset with new boundary
+   - Parser reset keeping same boundary
+   - Parser reset clears error state
+
+3. **test_streaming.lua** - Streaming & progress callback tests (14 tests)
+   - Progress callbacks
+   - Progress parameters
+   - Interrupt parsing
+   - Multiple parts progress tracking
+   - Feed method
+   - Chunked feeding
+   - Pause/resume functionality
+   - Incremental parsing
+   - Streaming error handling
+
+4. **test_large_data.lua** - Large data handling tests
    - 4GB data simulation
    - Memory safety validation
    - Performance with large payloads
-
-3. **test_streaming.lua** - Streaming support (8 tests)
-   - M4: `feed()` method for streaming
-   - Pause/resume functionality
-   - Chunked data processing
 
 ## Running Tests
 
@@ -35,8 +51,9 @@ luajit run_all_tests.lua
 ```bash
 cd tests
 luajit test_core.lua
-luajit test_h1_h2_memory_errors.lua
-# ... etc
+luajit test_state.lua
+luajit test_streaming.lua
+luajit test_large_data.lua
 ```
 
 ### Run from Parent Directory
@@ -46,14 +63,12 @@ make test
 
 ## Test Statistics
 
-- **Total Test Suites**: 6
-- **Total Test Cases**: 55
+- **Total Test Suites**: 4
 - **Test Coverage**: 
   - Core functionality: ✓
-  - Error handling: ✓
   - Memory management: ✓
   - Streaming: ✓
-  - Statistics: ✓
+  - Large data handling: ✓
 
 ## Adding New Tests
 

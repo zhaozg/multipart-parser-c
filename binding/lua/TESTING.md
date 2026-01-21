@@ -10,12 +10,10 @@ binding/lua/
 ├── tests/                   # Test suite directory
 │   ├── README.md            # Test documentation
 │   ├── run_all_tests.lua    # Unified test runner
-│   ├── test_core.lua        # Core functionality (23 tests)
-│   ├── test_large_data.lua  # Large data handling
-│   ├── test_h1_h2_memory_errors.lua  # H1/H2 tasks (8 tests)
-│   ├── test_m1_m2_limits_stats.lua   # M1/M2 tasks (8 tests)
-│   ├── test_m3_simple_parse.lua      # M3 task (8 tests)
-│   └── test_m4_streaming.lua         # M4 task (8 tests)
+│   ├── test_core.lua        # Core functionality tests
+│   ├── test_state.lua       # State management tests
+│   ├── test_streaming.lua   # Streaming support tests
+│   └── test_large_data.lua  # Large data handling tests
 └── examples/                # Example code directory
     ├── README.md            # Examples documentation
     ├── basic_usage.lua      # Basic usage patterns
@@ -27,25 +25,39 @@ binding/lua/
 ### Naming Convention
 - `test_*.lua` - Test suites
 - `test_<feature>.lua` - Feature-specific tests
-- `test_<task_id>_<description>.lua` - Task-specific tests (e.g., test_h1_h2_memory_errors.lua)
 
 ### Test Categories
 
-1. **Core Functionality** (test_core.lua)
-   - 23 tests covering basic operations
-   - Parser creation, callbacks, simple parse
-   - Binary data, error handling
+1. **Core Parsing & Error Handling** (test_core.lua - 27 tests)
+   - Module loading and version
+   - Parser initialization
+   - Basic parsing with callbacks
+   - Multi-part parsing, chunked parsing
+   - Binary data, UTF-8 support
+   - Callback mechanisms (pause/resume)
+   - Header accumulation
+   - Simple parse function
+   - Error handling (callback errors, error state management)
 
-2. **Task-Specific Tests**
-   - H1/H2: Memory & errors (8 tests)
-   - M1/M2: Limits & statistics (8 tests)
-   - M3: Simple parse enhancements (8 tests)
-   - M4: Streaming support (8 tests)
+2. **State Management** (test_state.lua - 3 tests)
+   - Parser reset with new boundary
+   - Parser reset keeping same boundary
+   - Parser reset clears error state
 
-3. **Performance Tests**
-   - Large data handling (4GB simulation)
+3. **Streaming & Progress Callbacks** (test_streaming.lua - 14 tests)
+   - Progress callback functionality
+   - Progress parameters and tracking
+   - Interrupt/pause parsing
+   - Multiple parts progress
+   - Feed method (chunked feeding)
+   - Pause/resume functionality
+   - Incremental parsing
+   - Streaming error handling
 
-### Total: 55 tests across 6 suites
+4. **Large Data Handling** (test_large_data.lua)
+   - Performance tests
+   - 4GB data simulation
+   - Memory safety validation
 
 ## Running Tests
 
@@ -57,10 +69,8 @@ make test                    # Run complete test suite
 ### Individual Suites
 ```bash
 make test-core              # Core functionality
-make test-h1-h2             # Memory & error handling
-make test-m1-m2             # Limits & statistics
-make test-m3                # Simple parse mode
-make test-m4                # Streaming support
+make test-state             # State management
+make test-streaming         # Streaming support
 make test-large             # Large data handling
 ```
 
@@ -90,7 +100,7 @@ luajit streaming_usage.lua
 
 1. **Clear Separation**
    - Tests separated from examples
-   - Task-specific test organization
+   - Feature-based test organization
    - Easier to find relevant tests
 
 2. **Better Discoverability**
