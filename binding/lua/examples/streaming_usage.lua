@@ -1,5 +1,5 @@
 #!/usr/bin/env luajit
--- M4: Streaming Processing Example
+-- Streaming Processing Example
 -- Demonstrates how to use the parser with chunked data from network streams
 -- Shows pause/resume functionality and proper error handling
 
@@ -24,7 +24,7 @@ load_module()
 local mp = require("multipart_parser")
 
 print("===========================================")
-print("M4: Streaming Processing Example")
+print("Streaming Processing Example")
 print("===========================================\n")
 
 -- Example 1: Basic streaming with feed()
