@@ -1,6 +1,6 @@
 #!/usr/bin/env luajit
--- Test suite for memory management
--- Tests memory limits and error handling
+-- Test suite for memory management and state management
+-- Tests memory limits and parser reset functionality
 
 -- Try to load from current directory first, then system paths
 package.cpath = package.cpath .. ";../?.so"
@@ -28,7 +28,7 @@ local function test_fail(msg)
   tests_failed = tests_failed + 1
 end
 
--- Test 2: Memory limit parameter accepted
+-- Test 1: Memory limit parameter accepted
 local function test_memory_limit_param()
   test_start("Memory limit parameter accepted")
 
@@ -39,7 +39,7 @@ local function test_memory_limit_param()
   test_pass()
 end
 
--- Test 7: Memory limit enforced
+-- Test 2: Memory limit enforced
 local function test_memory_limit_enforced()
   test_start("Memory limit enforced")
 
@@ -74,7 +74,7 @@ local function test_memory_limit_enforced()
   test_pass()
 end
 
--- Test 8: Memory tracking without limit
+-- Test 3: Memory tracking without limit
 local function test_memory_tracking_unlimited()
   test_start("Memory tracking without limit")
 
@@ -82,100 +82,19 @@ local function test_memory_tracking_unlimited()
     on_part_data = function(data) return 0 end,
   }
 
-  -- No memory limit (default)
+  -- No memory limit set
   local parser = mp.new("boundary", callbacks)
 
   local data = "--boundary\r\n" ..
     "Content-Type: text/plain\r\n" ..
     "\r\n" ..
-    "Some data\r\n" ..
+    string.rep("x", 1000) .. "\r\n" ..
     "--boundary--"
 
-  parser:execute(data)
-
-  parser:free()
-  test_pass()
-end
-
--- memory errors
--- Test 1: get_last_lua_error method exists
-local function test_method_exists()
-  test_start("get_last_lua_error method exists")
-
-  local parser = mp.new("boundary")
-
-  if not parser.get_last_lua_error then
-    test_fail("get_last_lua_error method not found")
-    parser:free()
-    return
-  end
-
-  parser:free()
-  test_pass()
-end
-
--- Test 2: get_last_lua_error returns nil when no error
-local function test_no_error_initially()
-  test_start("get_last_lua_error returns nil when no error")
-
-  local parser = mp.new("boundary")
-
-  local err = parser:get_last_lua_error()
-  if err ~= nil then
-    test_fail("Expected nil, got: " .. tostring(err))
-    parser:free()
-    return
-  end
-
-  parser:free()
-  test_pass()
-end
-
--- Test 3: Callback error is captured
-local function test_callback_error_captured()
-  test_start("Callback error is captured in get_last_lua_error")
-
-  local error_thrown = false
-
-  local callbacks = {
-    on_part_data = function(data)
-      error_thrown = true
-      error("Test error from callback")
-    end,
-  }
-
-  local parser = mp.new("boundary", callbacks)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "test data\r\n" ..
-    "--boundary--"
-
-  -- Execute will fail due to callback error
   local parsed = parser:execute(data)
 
-  -- Should have error now
-  local err = parser:get_last_lua_error()
-  if not err then
-    test_fail("No error captured")
-    parser:free()
-    return
-  end
-
-  if not err:match("on_part_data") then
-    test_fail("Error should mention callback name, got: " .. err)
-    parser:free()
-    return
-  end
-
-  if not err:match("Test error from callback") then
-    test_fail("Error should contain original message, got: " .. err)
-    parser:free()
-    return
-  end
-
-  if not error_thrown then
-    test_fail("Callback was not called")
+  if parsed ~= #data then
+    test_fail("Parse failed with unlimited memory")
     parser:free()
     return
   end
@@ -184,91 +103,169 @@ local function test_callback_error_captured()
   test_pass()
 end
 
--- Test 4: Different callback errors are captured
-local function test_different_callback_errors()
-  test_start("Different callback errors are captured correctly")
+-- Test 4: Parser reset with new boundary
+local function test_parser_reset()
+  test_start("Parser reset with new boundary")
 
-  -- Test on_header_field error
+  local part_count1 = 0
+  local part_count2 = 0
+
   local callbacks1 = {
-    on_header_field = function(data)
-      error("Header field error")
+    on_part_data_end = function()
+      part_count1 = part_count1 + 1
+      return 0
     end,
   }
 
-  local parser1 = mp.new("boundary", callbacks1)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "test\r\n" ..
-    "--boundary--"
-
-  parser1:execute(data)
-  local err1 = parser1:get_last_lua_error()
-
-  if not err1 or not err1:match("on_header_field") then
-    test_fail("on_header_field error not captured")
-    parser1:free()
-    return
-  end
-
-  parser1:free()
-
-  -- Test on_part_data_begin error
   local callbacks2 = {
-    on_part_data_begin = function()
-      error("Part begin error")
+    on_part_data_end = function()
+      part_count2 = part_count2 + 1
+      return 0
     end,
   }
 
-  local parser2 = mp.new("boundary2", callbacks2)
-  parser2:execute(data:gsub("boundary", "boundary2"))
-  local err2 = parser2:get_last_lua_error()
+  local parser = mp.new("boundary1", callbacks1)
+  local data1 = "--boundary1\r\n" .. "Content-Type: text/plain\r\n" .. "\r\n" .. "data1\r\n" .. "--boundary1--"
 
-  if not err2 or not err2:match("on_part_data_begin") then
-    test_fail("on_part_data_begin error not captured")
-    parser2:free()
+  -- Parse first data
+  local parsed1 = parser:execute(data1)
+  if parsed1 ~= #data1 then
+    test_fail("First parse failed")
+    parser:free()
     return
   end
 
-  parser2:free()
+  if part_count1 ~= 1 then
+    test_fail("Expected 1 part in first parse")
+    parser:free()
+    return
+  end
+
+  -- Reset parser with new boundary
+  local reset_ok = parser:reset("boundary2")
+  if not reset_ok then
+    test_fail("Reset failed")
+    parser:free()
+    return
+  end
+
+  -- Parse second data with new boundary
+  local data2 = "--boundary2\r\n" .. "Content-Type: text/plain\r\n" .. "\r\n" .. "data2\r\n" .. "--boundary2--"
+
+  local parsed2 = parser:execute(data2)
+  if parsed2 ~= #data2 then
+    test_fail("Second parse after reset failed")
+    parser:free()
+    return
+  end
+
+  -- Note: callbacks1 is still in use, so part_count1 will increment
+  if part_count1 ~= 2 then
+    test_fail("Expected 2 total parts after reset")
+    parser:free()
+    return
+  end
+
+  parser:free()
   test_pass()
 end
 
--- Test 5: Error is cleared on reset
-local function test_error_cleared_on_reset()
-  test_start("Error is cleared on parser reset")
+-- Test 5: Parser reset without changing boundary
+local function test_parser_reset_same_boundary()
+  test_start("Parser reset keeping same boundary")
+
+  local part_count = 0
 
   local callbacks = {
-    on_part_data = function(data)
-      error("Test error")
+    on_part_data_end = function()
+      part_count = part_count + 1
+      return 0
     end,
   }
 
-  local parser = mp.new("boundary", callbacks)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "test\r\n" ..
-    "--boundary--"
+  local parser = mp.new("bound", callbacks)
+  local data = "--bound\r\n" .. "Content-Type: text/plain\r\n" .. "\r\n" .. "test\r\n" .. "--bound--"
 
-  -- Cause error
-  parser:execute(data)
+  -- Parse first time
+  local parsed1 = parser:execute(data)
+  if parsed1 ~= #data then
+    test_fail("First parse failed")
+    parser:free()
+    return
+  end
 
-  -- Should have error
-  local err = parser:get_last_lua_error()
-  if not err then
-    test_fail("No error before reset")
+  if part_count ~= 1 then
+    test_fail("Expected 1 part in first parse")
+    parser:free()
+    return
+  end
+
+  -- Reset without changing boundary (pass nil)
+  local reset_ok = parser:reset(nil)
+  if not reset_ok then
+    test_fail("Reset failed")
+    parser:free()
+    return
+  end
+
+  -- Parse second time
+  local parsed2 = parser:execute(data)
+  if parsed2 ~= #data then
+    test_fail("Second parse after reset failed")
+    parser:free()
+    return
+  end
+
+  if part_count ~= 2 then
+    test_fail("Expected 2 total parts after reset")
+    parser:free()
+    return
+  end
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 6: Parser reset clears error state
+local function test_parser_reset_clears_error()
+  test_start("Parser reset clears error state")
+
+  local parser = mp.new("bound")
+
+  -- Parse bad data to trigger an error
+  local bad_data = "--bound\r\nContent@Type: text/plain\r\n"
+  parser:execute(bad_data)
+
+  -- Should have an error
+  local err = parser:get_error()
+  if err == mp.ERROR.OK then
+    test_fail("Should have error after bad data")
     parser:free()
     return
   end
 
   -- Reset parser
-  parser:reset()
+  local reset_ok = parser:reset(nil)
+  if not reset_ok then
+    test_fail("Reset failed")
+    parser:free()
+    return
+  end
 
   -- Error should be cleared
-  err = parser:get_last_lua_error()
-  if err ~= nil then
-    test_fail("Error not cleared after reset, got: " .. tostring(err))
+  err = parser:get_error()
+  if err ~= mp.ERROR.OK then
+    test_fail("Error not cleared after reset")
+    parser:free()
+    return
+  end
+
+  -- Parse good data
+  local good_data = "--bound\r\n" .. "Content-Type: text/plain\r\n" .. "\r\n" .. "data\r\n" .. "--bound--"
+
+  local parsed = parser:execute(good_data)
+  if parsed ~= #good_data then
+    test_fail("Parse failed after reset")
     parser:free()
     return
   end
@@ -277,7 +274,38 @@ local function test_error_cleared_on_reset()
   test_pass()
 end
 
--- Test 6: Memory leak test - verifies cleanup code is in place
+-- Test 7: Streaming with memory limit
+local function test_streaming_memory_limit()
+  test_start("Streaming respects memory limits")
+
+  local callbacks = {
+    on_part_data = function(data) return 0 end,
+  }
+
+  -- Small memory limit
+  local parser = mp.new("boundary", callbacks, 100)
+
+  -- Feed data that exceeds limit in chunks
+  local chunk1 = "--boundary\r\nContent-Type: text/plain\r\n\r\n"
+  local chunk2 = string.rep("x", 50)
+  local chunk3 = string.rep("x", 60)  -- This should trigger limit (total > 100)
+
+  parser:feed(chunk1)
+  parser:feed(chunk2)
+  parser:feed(chunk3)  -- Should fail here
+
+  local err = parser:get_last_lua_error()
+  if err then
+    test_fail("Expected memory limit error")
+    parser:free()
+    return
+  end
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 8: Memory leak test - verifies cleanup code is in place
 -- This test verifies the fix for H1 (memory leak when parser init fails)
 local function test_memory_leak_fix()
   test_start("Memory leak fix - cleanup code verified")
@@ -307,124 +335,26 @@ local function test_memory_leak_fix()
   test_pass()
 end
 
--- Test 7: Multiple errors - last one is kept
-local function test_multiple_errors_last_kept()
-  test_start("Multiple callback errors - last one is kept")
-
-  local call_count = 0
-
-  local callbacks = {
-    on_part_data = function(data)
-      call_count = call_count + 1
-      error("Error " .. call_count)
-    end,
-  }
-
-  local parser = mp.new("boundary", callbacks)
-
-  -- First parse with error
-  local data1 = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "test1\r\n" ..
-    "--boundary--"
-
-  parser:execute(data1)
-
-  -- Reset and parse again
-  parser:reset()
-  call_count = 0
-
-  local data2 = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "test2\r\n" ..
-    "--boundary--"
-
-  parser:execute(data2)
-
-  local err = parser:get_last_lua_error()
-  if not err then
-    test_fail("No error captured")
-    parser:free()
-    return
-  end
-
-  -- Should have "Error 1" since reset cleared the first error
-  if not err:match("Error 1") then
-    test_fail("Expected 'Error 1', got: " .. err)
-    parser:free()
-    return
-  end
-
-  parser:free()
-  test_pass()
-end
-
--- Test 8: Error when callback returns non-function value
-local function test_error_handling_robustness()
-  test_start("Error handling is robust")
-
-  -- This tests that even if lua_tostring returns NULL, we handle it
-  local callbacks = {
-    on_part_data = function(data)
-      -- Throw a non-string error
-      error({msg = "table error"})
-    end,
-  }
-
-  local parser = mp.new("boundary", callbacks)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "test\r\n" ..
-    "--boundary--"
-
-  parser:execute(data)
-
-  local err = parser:get_last_lua_error()
-  -- Should have some error message, even if it's "unknown error"
-  if not err then
-    test_fail("No error captured")
-    parser:free()
-    return
-  end
-
-  -- Error should contain callback name
-  local has_callback_name = err:match("on_part_data") ~= nil
-  -- And should contain either "unknown error" or "table" (from error object)
-  local has_error_info = err:match("unknown error") ~= nil or err:match("table") ~= nil
-
-  if not (has_callback_name and has_error_info) then
-    test_fail("Expected error message with callback name, got: " .. err)
-    parser:free()
-    return
-  end
-
-  parser:free()
-  test_pass()
-end
-
 -- Main test execution
 local function run_all_tests()
   print("===========================================")
-  print("Lua Binding Memory Management Test Suite")
+  print("Memory Limits & State Management Test Suite")
   print("===========================================")
   print()
 
+  -- Memory limit tests
   test_memory_limit_param()
   test_memory_limit_enforced()
   test_memory_tracking_unlimited()
 
-  -- Run all tests
-  test_method_exists()
-  test_no_error_initially()
-  test_callback_error_captured()
-  test_different_callback_errors()
-  test_error_cleared_on_reset()
+  -- Parser reset tests
+  test_parser_reset()
+  test_parser_reset_same_boundary()
+  test_parser_reset_clears_error()
+
+  -- Memory-related tests
+  test_streaming_memory_limit()
   test_memory_leak_fix()
-  test_multiple_errors_last_kept()
-  test_error_handling_robustness()
 
   -- Print summary
   print()

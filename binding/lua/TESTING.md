@@ -28,22 +28,34 @@ binding/lua/
 
 ### Test Categories
 
-1. **Core Functionality** (test_core.lua)
-   - Basic parser operations
-   - Parser creation, callbacks, simple parse
-   - Binary data, error handling
-   - UTF-8 support
+1. **Core Parsing & Error Handling** (test_core.lua - 27 tests)
+   - Module loading and version
+   - Parser initialization
+   - Basic parsing with callbacks
+   - Multi-part parsing, chunked parsing
+   - Binary data, UTF-8 support
+   - Callback mechanisms (pause/resume)
+   - Header accumulation
+   - Simple parse function
+   - Error handling (callback errors, error state management)
 
-2. **Memory Management** (test_memory.lua)
-   - Memory limits
-   - Error handling
-   - Resource cleanup
-   - Statistics tracking
+2. **Memory Limits & State Management** (test_memory.lua - 8 tests)
+   - Memory limit parameters and enforcement
+   - Memory tracking (with/without limits)
+   - Parser reset with new/same boundary
+   - Parser reset clearing error state
+   - Streaming with memory limits
+   - Memory leak verification
 
-3. **Streaming Support** (test_streaming.lua)
-   - Chunked data processing
+3. **Streaming & Progress Callbacks** (test_streaming.lua - 14 tests)
+   - Progress callback functionality
+   - Progress parameters and tracking
+   - Interrupt/pause parsing
+   - Multiple parts progress
+   - Feed method (chunked feeding)
    - Pause/resume functionality
-   - Stream processing
+   - Incremental parsing
+   - Streaming error handling
 
 4. **Large Data Handling** (test_large_data.lua)
    - Performance tests

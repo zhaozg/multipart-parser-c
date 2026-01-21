@@ -6,23 +6,38 @@ This directory contains comprehensive tests for the Lua binding of multipart-par
 
 ### Test Suites
 
-1. **test_core.lua** - Core functionality tests
-   - Basic parser creation and usage
-   - Callback mechanisms
-   - Simple parse function
+1. **test_core.lua** - Core parsing & error handling tests (27 tests)
+   - Module loading and version
+   - Parser initialization
+   - Basic parsing with callbacks
+   - Multi-part parsing
    - Binary data handling
-   - Error cases
+   - Callback mechanisms (pause/resume)
+   - Header accumulation
+   - UTF-8 data
+   - Simple parse function
+   - Error handling (callback errors, error state)
 
-2. **test_memory.lua** - Memory management tests
-   - Memory limits
-   - Resource cleanup
-   - Error handling
-   - Statistics tracking
+2. **test_memory.lua** - Memory limits & state management tests (8 tests)
+   - Memory limit parameters
+   - Memory limit enforcement
+   - Memory tracking
+   - Parser reset with new boundary
+   - Parser reset keeping same boundary
+   - Parser reset clearing error state
+   - Streaming with memory limits
+   - Memory leak verification
 
-3. **test_streaming.lua** - Streaming support tests
-   - Chunked data processing
+3. **test_streaming.lua** - Streaming & progress callback tests (14 tests)
+   - Progress callbacks
+   - Progress parameters
+   - Interrupt parsing
+   - Multiple parts progress tracking
+   - Feed method
+   - Chunked feeding
    - Pause/resume functionality
-   - Stream processing
+   - Incremental parsing
+   - Streaming error handling
 
 4. **test_large_data.lua** - Large data handling tests
    - 4GB data simulation
