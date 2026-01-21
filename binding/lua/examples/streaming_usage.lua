@@ -83,12 +83,6 @@ for i, chunk in ipairs(chunks) do
   print(string.format("  Parsed %d bytes", parsed))
 end
 
-local stats = parser:get_stats()
-print(string.format("\nFinal statistics:"))
-print(string.format("  Total bytes: %d", stats.total_bytes))
-print(string.format("  Parts: %d", stats.parts_count))
-print(string.format("  Max part size: %d", stats.max_part_size))
-
 parser:free()
 
 -- Example 2: Pause and Resume
@@ -226,12 +220,7 @@ local stream_callbacks = {
 local parser3 = mp.new("testboundary", stream_callbacks)
 local success = simulate_network_stream(parser3, 1000, 64)
 
-if success then
-  local stats = parser3:get_stats()
-  print(string.format("\nStream statistics:"))
-  print(string.format("  Total bytes processed: %d", stats.total_bytes))
-  print(string.format("  Parts received: %d", stats.parts_count))
-end
+assert(success)
 
 parser3:free()
 
@@ -266,10 +255,6 @@ if lua_err and lua_err:match("Memory limit exceeded") then
   print(string.format(">>> Error: %s", lua_err))
 end
 
-local stats = parser4:get_stats()
-print(string.format("Memory stats: current=%d, max=%d",
-      stats.current_memory, stats.max_memory))
-
 parser4:free()
 
 print("\n===========================================")
@@ -283,4 +268,3 @@ print("3. Check get_error() for MPPE_PAUSED to detect pause")
 print("4. Resume by feeding remaining data from where parsing stopped")
 print("5. Always check for errors and Lua callback errors")
 print("6. Use memory limits to protect against large uploads")
-print("7. Use get_stats() to monitor parsing progress")

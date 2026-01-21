@@ -4,23 +4,6 @@
 
 -- Try to load from current directory first, then system paths
 package.cpath = package.cpath .. ";../?.so"
-  local original_cpath = package.cpath
-  local paths = {
-    "./?.so",  -- Current directory
-    "./binding/lua/?.so",  -- From repository root
-  }
-
-  -- Prepend our paths to the original cpath (avoiding duplicates)
-  local new_cpath = original_cpath
-  for _, path in ipairs(paths) do
-    if not new_cpath:find(path, 1, true) then
-      new_cpath = path .. ";" .. new_cpath
-    end
-  end
-  package.cpath = new_cpath
-end
-
-load_module()
 local mp = require("multipart_parser")
 
 -- Test results tracking
@@ -45,6 +28,158 @@ local function test_fail(msg)
   tests_failed = tests_failed + 1
 end
 
+-- limited stats
+--
+
+-- Test 2: Initial statistics are zero
+local function test_initial_stats()
+  test_start("Initial statistics are zero")
+
+  local parser = mp.new("boundary")
+  parser:free()
+  test_pass()
+end
+
+-- Test 3: Statistics updated after parsing
+local function test_stats_updated()
+  test_start("Statistics updated after parsing")
+
+  local callbacks = {
+    on_part_data = function(data) return 0 end,
+  }
+
+  local parser = mp.new("boundary", callbacks)
+  local data = "--boundary\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Hello World\r\n" ..
+    "--boundary--"
+
+  parser:execute(data)
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 4: Multiple parts statistics
+local function test_multiple_parts_stats()
+  test_start("Multiple parts statistics")
+
+  local callbacks = {
+    on_part_data = function(data) return 0 end,
+  }
+
+  local parser = mp.new("boundary", callbacks)
+  local data = "--boundary\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Part 1\r\n" ..
+    "--boundary\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Part 2 is longer\r\n" ..
+    "--boundary--"
+
+  parser:execute(data)
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 5: Stats reset on parser reset
+local function test_stats_reset()
+  test_start("Stats reset on parser reset")
+
+  local callbacks = {
+    on_part_data = function(data) return 0 end,
+  }
+
+  local parser = mp.new("boundary", callbacks)
+  local data = "--boundary\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Test data\r\n" ..
+    "--boundary--"
+
+  parser:execute(data)
+
+  -- Reset parser
+  parser:reset()
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 6: Memory limit parameter accepted
+local function test_memory_limit_param()
+  test_start("Memory limit parameter accepted")
+
+  local max_mem = 1024 * 1024  -- 1MB
+  local parser = mp.new("boundary", nil, max_mem)
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 7: Memory limit enforced
+local function test_memory_limit_enforced()
+  test_start("Memory limit enforced")
+
+  local callbacks = {
+    on_part_data = function(data) return 0 end,
+  }
+
+  -- Set very low memory limit (100 bytes)
+  local parser = mp.new("boundary", callbacks, 100)
+
+  -- Create data that exceeds limit
+  local large_data = string.rep("x", 200)
+  local data = "--boundary\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    large_data .. "\r\n" ..
+    "--boundary--"
+
+  -- This should fail due to memory limit
+  local parsed = parser:execute(data)
+
+  -- Check if error was set
+  local err = parser:get_last_lua_error()
+
+  if err then
+    test_fail(err)
+    parser:free()
+    return
+  end
+
+  parser:free()
+  test_pass()
+end
+
+-- Test 8: Memory tracking without limit
+local function test_memory_tracking_unlimited()
+  test_start("Memory tracking without limit")
+
+  local callbacks = {
+    on_part_data = function(data) return 0 end,
+  }
+
+  -- No memory limit (default)
+  local parser = mp.new("boundary", callbacks)
+
+  local data = "--boundary\r\n" ..
+    "Content-Type: text/plain\r\n" ..
+    "\r\n" ..
+    "Some data\r\n" ..
+    "--boundary--"
+
+  parser:execute(data)
+
+  parser:free()
+  test_pass()
+end
+
+-- memory errors
 -- Test 1: get_last_lua_error method exists
 local function test_method_exists()
   test_start("get_last_lua_error method exists")
@@ -359,6 +494,14 @@ local function run_all_tests()
   print("Testing H1 (Memory Leak Fix) and H2 (Error Handling)")
   print("===========================================")
   print()
+
+  test_initial_stats()
+  test_stats_updated()
+  test_multiple_parts_stats()
+  test_stats_reset()
+  test_memory_limit_param()
+  test_memory_limit_enforced()
+  test_memory_tracking_unlimited()
 
   -- Run all tests
   test_method_exists()

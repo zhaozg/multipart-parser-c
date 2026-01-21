@@ -117,16 +117,6 @@ end)
 
 ## Advanced Features
 
-### Memory Limits
-```lua
--- Set 10MB limit
-local parser = mp.new(boundary, callbacks, 10 * 1024 * 1024)
-
--- Monitor usage
-local stats = parser:get_stats()
-print("Memory used:", stats.current_memory)
-```
-
 ### Error Handling
 ```lua
 parser:execute(data)
@@ -142,15 +132,6 @@ local err = parser:get_error()
 if err ~= mp.ERROR.OK then
   print("Parser error:", parser:get_error_message())
 end
-```
-
-### Statistics
-```lua
-local stats = parser:get_stats()
-print("Total bytes:", stats.total_bytes)
-print("Parts count:", stats.parts_count)
-print("Max part size:", stats.max_part_size)
-print("Current memory:", stats.current_memory)
 ```
 
 ## Requirements

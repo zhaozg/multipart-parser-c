@@ -423,7 +423,6 @@ local function test_multiple_parsers()
   local data2 = "--boundary2\r\nContent-Type: text/plain\r\n\r\ndata2\r\n--boundary2--"
 
   local parsed1 = parser1:execute(data1)
-  local parsed2 = parser2:execute(data2)
 
   if parsed1 ~= #data1 then
     test_fail("Parser 1 failed to parse")
@@ -431,7 +430,7 @@ local function test_multiple_parsers()
     parser2:free()
     return
   end
-
+  local parsed2 = parser2:execute(data2)
   if parsed2 ~= #data2 then
     test_fail("Parser 2 failed to parse")
     parser1:free()
@@ -500,7 +499,6 @@ local function test_large_boundary()
     .. "--"
 
   local parsed = parser:execute(data)
-
   if parsed ~= #data then
     test_fail("Failed to parse with large boundary")
     parser:free()

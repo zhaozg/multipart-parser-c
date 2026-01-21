@@ -18,21 +18,7 @@ This directory contains comprehensive tests for the Lua binding of multipart-par
    - Memory safety validation
    - Performance with large payloads
 
-3. **test_h1_h2_memory_errors.lua** - Memory leak & error handling (8 tests)
-   - H1: Memory leak fixes
-   - H2: Enhanced error handling with `get_last_lua_error()`
-   - Callback error capture
-
-4. **test_m1_m2_limits_stats.lua** - Memory limits & statistics (8 tests)
-   - M1: Configurable memory limits
-   - M2: Parsing statistics (`get_stats()`)
-
-5. **test_m3_simple_parse.lua** - Simple parse mode enhancements (8 tests)
-   - M3: Progress callbacks in simple mode
-   - Parsing interruption
-   - Complete part information
-
-6. **test_m4_streaming.lua** - Streaming support (8 tests)
+3. **test_streaming.lua** - Streaming support (8 tests)
    - M4: `feed()` method for streaming
    - Pause/resume functionality
    - Chunked data processing

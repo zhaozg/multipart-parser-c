@@ -8,6 +8,7 @@ package.cpath = package.cpath .. ";../?.so"
   trigger GC and invalidate the data pointer.
 ]]
 
+package.cpath = package.cpath .. ";../?.so"
 local multipart = require("multipart_parser")
 
 print("=== Large Data Processing Test (4GB Simulation) ===")

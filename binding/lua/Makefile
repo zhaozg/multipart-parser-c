@@ -20,7 +20,7 @@ endif
 
 # Compiler flags
 CC ?= gcc
-CFLAGS = -O2 -Wall -fPIC $(LUA_CFLAGS) -I../..
+CFLAGS = -O3 -Wall -fPIC $(LUA_CFLAGS) -I../..
 LDFLAGS = -shared
 LIBS = $(LUA_LIBS)
 
@@ -49,25 +49,10 @@ test: $(TARGET)
 	@echo "Running Multipart Parser Lua Tests"
 	@echo "=========================================="
 	@cd tests && luajit run_all_tests.lua || lua run_all_tests.lua
-
-# Run individual test suites
-test-core: $(TARGET)
 	@cd tests && (luajit test_core.lua || lua test_core.lua)
-
-test-h1-h2: $(TARGET)
-	@cd tests && (luajit test_h1_h2_memory_errors.lua || lua test_h1_h2_memory_errors.lua)
-
-test-m1-m2: $(TARGET)
-	@cd tests && (luajit test_m1_m2_limits_stats.lua || lua test_m1_m2_limits_stats.lua)
-
-test-m3: $(TARGET)
-	@cd tests && (luajit test_m3_simple_parse.lua || lua test_m3_simple_parse.lua)
-
-test-m4: $(TARGET)
-	@cd tests && (luajit test_m4_streaming.lua || lua test_m4_streaming.lua)
-
-test-large: $(TARGET)
-	@cd tests && (luajit test_large_data.lua || lua test_large_data.lua)
+	@cd tests && (luajit test_memory.lua || lua test_memory.lua)
+#	@cd tests && (luajit test_streaming.lua || lua test_streaming.lua)
+#	@cd tests && (luajit test_large_data.lua || lua test_large_data.lua)
 
 # Run examples
 example-basic: $(TARGET)

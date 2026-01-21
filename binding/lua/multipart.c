@@ -247,6 +247,7 @@ static int on_body_end_cb(multipart_parser* p) {
 static int lmp_new(lua_State* L) {
   char const* boundary;
   lua_multipart_parser* lmp;
+  int ref = LUA_NOREF;
 
   /* Get boundary string */
   boundary = luaL_checkstring(L, 1);
@@ -254,29 +255,26 @@ static int lmp_new(lua_State* L) {
   /* Get callbacks table (optional) */
   if (!lua_isnoneornil(L, 2)) {
     luaL_checktype(L, 2, LUA_TTABLE);
-  }
+    lua_pushvalue(L, 2);
+    ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  };
 
   /* Create userdata */
   lmp = (lua_multipart_parser*)lua_newuserdata(L, sizeof(lua_multipart_parser));
   if (!lmp) {
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
     return luaL_error(L, "Failed to allocate memory for parser");
   }
 
   /* Initialize basic fields */
   lmp->parser = NULL;
   lmp->L = L;
-  lmp->callbacks_ref = LUA_NOREF;
+  lmp->callbacks_ref = ref;
   lmp->last_error[0] = '\0';
 
   /* Set metatable */
   luaL_getmetatable(L, MULTIPART_PARSER_MT);
   lua_setmetatable(L, -2);
-
-  /* Store callbacks table in registry */
-  if (!lua_isnoneornil(L, 2)) {
-    lua_pushvalue(L, 2);
-    lmp->callbacks_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
 
   /* Setup callbacks in the structure's settings */
   memset(&lmp->settings, 0, sizeof(multipart_parser_settings));
