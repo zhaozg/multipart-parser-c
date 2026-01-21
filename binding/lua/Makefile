@@ -49,10 +49,19 @@ test: $(TARGET)
 	@echo "Running Multipart Parser Lua Tests"
 	@echo "=========================================="
 	@cd tests && luajit run_all_tests.lua || lua run_all_tests.lua
+
+# Individual test targets
+test-core: $(TARGET)
 	@cd tests && (luajit test_core.lua || lua test_core.lua)
+
+test-memory: $(TARGET)
 	@cd tests && (luajit test_memory.lua || lua test_memory.lua)
-#	@cd tests && (luajit test_streaming.lua || lua test_streaming.lua)
-#	@cd tests && (luajit test_large_data.lua || lua test_large_data.lua)
+
+test-streaming: $(TARGET)
+	@cd tests && (luajit test_streaming.lua || lua test_streaming.lua)
+
+test-large: $(TARGET)
+	@cd tests && (luajit test_large_data.lua || lua test_large_data.lua)
 
 # Run examples
 example-basic: $(TARGET)
@@ -61,4 +70,4 @@ example-basic: $(TARGET)
 example-streaming: $(TARGET)
 	@cd examples && luajit streaming_usage.lua
 
-.PHONY: all install clean test test-core test-h1-h2 test-m1-m2 test-m3 test-m4 test-large example-basic example-streaming
+.PHONY: all install clean test test-core test-memory test-streaming test-large example-basic example-streaming
