@@ -1,5 +1,5 @@
 #!/usr/bin/env luajit
--- Test suite for M4 (streaming/feed support)
+-- Test suite for streaming/feed support
 
 -- Try to load from current directory first, then system paths
 package.cpath = package.cpath .. ";../?.so"

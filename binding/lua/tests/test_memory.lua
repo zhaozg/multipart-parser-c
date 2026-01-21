@@ -1,6 +1,6 @@
 #!/usr/bin/env luajit
--- Test suite for Lua binding improvements (H1 & H2)
--- Tests memory leak fixes and error handling enhancements
+-- Test suite for memory management
+-- Tests memory limits and error handling
 
 -- Try to load from current directory first, then system paths
 package.cpath = package.cpath .. ";../?.so"
@@ -28,89 +28,7 @@ local function test_fail(msg)
   tests_failed = tests_failed + 1
 end
 
--- limited stats
---
-
--- Test 2: Initial statistics are zero
-local function test_initial_stats()
-  test_start("Initial statistics are zero")
-
-  local parser = mp.new("boundary")
-  parser:free()
-  test_pass()
-end
-
--- Test 3: Statistics updated after parsing
-local function test_stats_updated()
-  test_start("Statistics updated after parsing")
-
-  local callbacks = {
-    on_part_data = function(data) return 0 end,
-  }
-
-  local parser = mp.new("boundary", callbacks)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "Hello World\r\n" ..
-    "--boundary--"
-
-  parser:execute(data)
-
-  parser:free()
-  test_pass()
-end
-
--- Test 4: Multiple parts statistics
-local function test_multiple_parts_stats()
-  test_start("Multiple parts statistics")
-
-  local callbacks = {
-    on_part_data = function(data) return 0 end,
-  }
-
-  local parser = mp.new("boundary", callbacks)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "Part 1\r\n" ..
-    "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "Part 2 is longer\r\n" ..
-    "--boundary--"
-
-  parser:execute(data)
-
-  parser:free()
-  test_pass()
-end
-
--- Test 5: Stats reset on parser reset
-local function test_stats_reset()
-  test_start("Stats reset on parser reset")
-
-  local callbacks = {
-    on_part_data = function(data) return 0 end,
-  }
-
-  local parser = mp.new("boundary", callbacks)
-  local data = "--boundary\r\n" ..
-    "Content-Type: text/plain\r\n" ..
-    "\r\n" ..
-    "Test data\r\n" ..
-    "--boundary--"
-
-  parser:execute(data)
-
-  -- Reset parser
-  parser:reset()
-
-  parser:free()
-  test_pass()
-end
-
--- Test 6: Memory limit parameter accepted
+-- Test 2: Memory limit parameter accepted
 local function test_memory_limit_param()
   test_start("Memory limit parameter accepted")
 
@@ -490,15 +408,10 @@ end
 -- Main test execution
 local function run_all_tests()
   print("===========================================")
-  print("Lua Binding Improvements Test Suite")
-  print("Testing H1 (Memory Leak Fix) and H2 (Error Handling)")
+  print("Lua Binding Memory Management Test Suite")
   print("===========================================")
   print()
 
-  test_initial_stats()
-  test_stats_updated()
-  test_multiple_parts_stats()
-  test_stats_reset()
   test_memory_limit_param()
   test_memory_limit_enforced()
   test_memory_tracking_unlimited()
