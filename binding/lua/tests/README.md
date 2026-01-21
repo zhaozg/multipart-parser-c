@@ -18,7 +18,10 @@ This directory contains comprehensive tests for the Lua binding of multipart-par
    - Simple parse function
    - Error handling (callback errors, error state)
 
-2. **test_memory.lua** - Memory limits & state management tests (8 tests)
+2. **test_state.lua** - State management tests (3 tests)
+   - Parser reset with new boundary
+   - Parser reset keeping same boundary
+   - Parser reset clears error state
    - Memory limit parameters
    - Memory limit enforcement
    - Memory tracking
@@ -56,7 +59,7 @@ luajit run_all_tests.lua
 ```bash
 cd tests
 luajit test_core.lua
-luajit test_memory.lua
+luajit test_state.lua
 luajit test_streaming.lua
 luajit test_large_data.lua
 ```

@@ -25,7 +25,7 @@ load_module()
 -- Test suite configuration
 local test_suites = {
   {name = "Core Functionality", file = "test_core.lua"},
-  {name = "Memory Management", file = "test_memory.lua"},
+  {name = "State Management", file = "test_state.lua"},
   {name = "Streaming Support", file = "test_streaming.lua"},
   {name = "Large Data Handling", file = "test_large_data.lua"},
 }

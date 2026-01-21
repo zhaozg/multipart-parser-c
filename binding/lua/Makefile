@@ -54,8 +54,8 @@ test: $(TARGET)
 test-core: $(TARGET)
 	@cd tests && (luajit test_core.lua || lua test_core.lua)
 
-test-memory: $(TARGET)
-	@cd tests && (luajit test_memory.lua || lua test_memory.lua)
+test-state: $(TARGET)
+	@cd tests && (luajit test_state.lua || lua test_state.lua)
 
 test-streaming: $(TARGET)
 	@cd tests && (luajit test_streaming.lua || lua test_streaming.lua)
@@ -70,4 +70,4 @@ example-basic: $(TARGET)
 example-streaming: $(TARGET)
 	@cd examples && luajit streaming_usage.lua
 
-.PHONY: all install clean test test-core test-memory test-streaming test-large example-basic example-streaming
+.PHONY: all install clean test test-core test-state test-streaming test-large example-basic example-streaming

@@ -11,7 +11,7 @@ binding/lua/
 │   ├── README.md            # Test documentation
 │   ├── run_all_tests.lua    # Unified test runner
 │   ├── test_core.lua        # Core functionality tests
-│   ├── test_memory.lua      # Memory management tests
+│   ├── test_state.lua       # State management tests
 │   ├── test_streaming.lua   # Streaming support tests
 │   └── test_large_data.lua  # Large data handling tests
 └── examples/                # Example code directory
@@ -39,7 +39,10 @@ binding/lua/
    - Simple parse function
    - Error handling (callback errors, error state management)
 
-2. **Memory Limits & State Management** (test_memory.lua - 8 tests)
+2. **State Management** (test_state.lua - 3 tests)
+   - Parser reset with new boundary
+   - Parser reset keeping same boundary
+   - Parser reset clears error state
    - Memory limit parameters and enforcement
    - Memory tracking (with/without limits)
    - Parser reset with new/same boundary
@@ -72,7 +75,7 @@ make test                    # Run complete test suite
 ### Individual Suites
 ```bash
 make test-core              # Core functionality
-make test-memory            # Memory management
+make test-state             # State management
 make test-streaming         # Streaming support
 make test-large             # Large data handling
 ```
