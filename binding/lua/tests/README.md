@@ -6,22 +6,28 @@ This directory contains comprehensive tests for the Lua binding of multipart-par
 
 ### Test Suites
 
-1. **test_core.lua** - Core functionality tests (23 tests)
+1. **test_core.lua** - Core functionality tests
    - Basic parser creation and usage
    - Callback mechanisms
    - Simple parse function
    - Binary data handling
    - Error cases
 
-2. **test_large_data.lua** - Large data handling tests
+2. **test_memory.lua** - Memory management tests
+   - Memory limits
+   - Resource cleanup
+   - Error handling
+   - Statistics tracking
+
+3. **test_streaming.lua** - Streaming support tests
+   - Chunked data processing
+   - Pause/resume functionality
+   - Stream processing
+
+4. **test_large_data.lua** - Large data handling tests
    - 4GB data simulation
    - Memory safety validation
    - Performance with large payloads
-
-3. **test_streaming.lua** - Streaming support (8 tests)
-   - M4: `feed()` method for streaming
-   - Pause/resume functionality
-   - Chunked data processing
 
 ## Running Tests
 
@@ -35,8 +41,9 @@ luajit run_all_tests.lua
 ```bash
 cd tests
 luajit test_core.lua
-luajit test_h1_h2_memory_errors.lua
-# ... etc
+luajit test_memory.lua
+luajit test_streaming.lua
+luajit test_large_data.lua
 ```
 
 ### Run from Parent Directory
@@ -46,14 +53,12 @@ make test
 
 ## Test Statistics
 
-- **Total Test Suites**: 6
-- **Total Test Cases**: 55
+- **Total Test Suites**: 4
 - **Test Coverage**: 
   - Core functionality: ✓
-  - Error handling: ✓
   - Memory management: ✓
   - Streaming: ✓
-  - Statistics: ✓
+  - Large data handling: ✓
 
 ## Adding New Tests
 

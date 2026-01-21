@@ -482,26 +482,32 @@ Run the comprehensive test suite:
 cd binding/lua
 make test
 
-# Or run directly
-luajit test.lua
+# Or run all tests directly
+cd binding/lua/tests
+luajit run_all_tests.lua
+
+# Or run individual test suites
+cd binding/lua/tests
+luajit test_core.lua
+luajit test_memory.lua
+luajit test_streaming.lua
+luajit test_large_data.lua
 ```
 
-The test suite includes 15 comprehensive tests covering:
-- Module loading
-- Basic parsing
-- Multi-part messages
-- Chunked parsing
-- Binary data handling
-- UTF-8 content
-- Error handling
-- Edge cases
+The test suite covers:
+- Core functionality (parser creation, callbacks, simple parse)
+- Memory management (limits, cleanup, error handling)
+- Streaming support (chunked processing, pause/resume)
+- Large data handling (4GB simulation, performance)
+- Binary data and UTF-8 content
+- Edge cases and error handling
 
 ### Large Data Test (4GB Simulation)
 
 To test processing large amounts of data (simulating >4GB) without actually creating large files:
 
 ```bash
-cd binding/lua
+cd binding/lua/tests
 luajit test_large_data.lua
 ```
 
@@ -509,7 +515,6 @@ This test:
 - Simulates processing 4GB of data in 64KB chunks (65,536 chunks)
 - Forces garbage collection during processing to test memory safety
 - Verifies that the data pointer remains valid across GC cycles
-- Tests the same conditions that caused the original crash in production
 
 **Note**: This test is particularly important for verifying that `lua_pcall` in callbacks doesn't trigger GC issues that could invalidate the data pointer during `multipart_parser_execute`.
 
@@ -528,4 +533,5 @@ MIT License - Same as multipart-parser-c
 ## See Also
 
 - [Main README](../../README.md) - C library documentation
-- [test.lua](./test.lua) - Comprehensive test examples
+- [Tests](./tests/README.md) - Test suite documentation
+- [Examples](./examples/README.md) - Usage examples

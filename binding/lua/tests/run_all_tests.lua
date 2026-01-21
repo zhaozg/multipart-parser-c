@@ -25,11 +25,9 @@ load_module()
 -- Test suite configuration
 local test_suites = {
   {name = "Core Functionality", file = "test_core.lua"},
+  {name = "Memory Management", file = "test_memory.lua"},
+  {name = "Streaming Support", file = "test_streaming.lua"},
   {name = "Large Data Handling", file = "test_large_data.lua"},
-  {name = "H1/H2: Memory & Error Handling", file = "test_h1_h2_memory_errors.lua"},
-  {name = "M1/M2: Memory Limits & Statistics", file = "test_m1_m2_limits_stats.lua"},
-  {name = "M3: Simple Parse Mode", file = "test_m3_simple_parse.lua"},
-  {name = "M4: Streaming Support", file = "test_m4_streaming.lua"},
 }
 
 -- Results tracking
