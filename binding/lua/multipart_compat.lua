@@ -39,7 +39,7 @@ local function transform_parts(parts)
     -- Process only if part is a table
     if type(part) == "table" then
       -- Collect headers (case-insensitive)
-      local disp = part["Content-Disposition"] or part["content-disposition"]
+      local disp = part["Content-Disposition"] or part["content-disposition"] or part["Content-disposition"]
       local content_type = part["Content-Type"] or part["Content-type"] or part["content-type"]
       
       -- Extract field name and filename
@@ -79,9 +79,9 @@ local function transform_parts(parts)
             else
               -- Convert to array
               local arr = {}
-              for i = 1, #nested_result do
-                if nested_result[i] then
-                  table.insert(arr, nested_result[i])
+              for k, v in pairs(nested_result) do
+                if type(k) == "number" then
+                  table.insert(arr, v)
                 end
               end
               value = arr
