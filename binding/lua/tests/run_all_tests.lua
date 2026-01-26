@@ -28,6 +28,7 @@ local test_suites = {
   {name = "State Management", file = "test_state.lua"},
   {name = "Streaming Support", file = "test_streaming.lua"},
   {name = "Large Data Handling", file = "test_large_data.lua"},
+  {name = "Compatibility Layer", file = "test_multipart.lua"},
 }
 
 -- Results tracking

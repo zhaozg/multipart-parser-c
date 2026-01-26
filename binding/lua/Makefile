@@ -48,11 +48,14 @@ test: $(TARGET)
 	@echo "=========================================="
 	@echo "Running Multipart Parser Lua Tests"
 	@echo "=========================================="
-	@cd tests && luajit run_all_tests.lua || lua run_all_tests.lua
+	@cd tests && luajit run_all_tests.lua
 
 # Individual test targets
 test-core: $(TARGET)
-	@cd tests && (luajit test_core.lua || lua test_core.lua)
+	@cd tests && luajit test_core.lua
+
+test-multipart: $(TARGET)
+	@cd tests && luajit test_multipart.lua
 
 test-state: $(TARGET)
 	@cd tests && (luajit test_state.lua || lua test_state.lua)
