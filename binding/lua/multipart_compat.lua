@@ -49,7 +49,7 @@ local function transform_parts(parts)
       -- Collect data chunks in order
       local data_chunks = {}
       for i = 1, #part do
-        table.insert(data_chunks, part[i])
+        data_chunks[i] = part[i]
       end
       local combined_data = table.concat(data_chunks)
       
@@ -95,7 +95,8 @@ local function transform_parts(parts)
         -- File upload (has filename parameter)
         value = {combined_data}
         value.filename = filename
-        -- Add all headers except Content-Disposition (preserve original case)
+        -- Add all headers except Content-Disposition
+        -- Preserve original header case (e.g., Content-Type vs Content-type)
         for k, v in pairs(part) do
           if type(k) == "string" then
             local k_lower = k:lower()
