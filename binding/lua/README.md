@@ -44,76 +44,11 @@ sudo make install
 
 ## Usage
 
-There are two ways to use this binding:
+The Lua binding provides a streaming parser interface using callbacks for fine-grained control over multipart parsing.
 
-### 1. Simple Parse Function (Recommended for most use cases)
+### Streaming Parser
 
-The `parse()` function provides a simple, efficient interface that parses the entire multipart message and returns a Lua table:
-
-```lua
-local mp = require("multipart_parser")
-
-local boundary = "boundary"
-local body = [[--boundary
-Content-Disposition: form-data; name="field1"
-
-value1
---boundary
-Content-Disposition: form-data; name="field2"
-Content-Type: text/plain
-
-value2
---boundary--]]
-
--- Parse and get result as table
-local result = mp.parse(boundary, body)
-
-if result then
-    -- result is an array of parts
-    for i, part in ipairs(result) do
-        print("Part " .. i .. ":")
-
-        -- Headers are stored as key-value pairs
-        for k, v in pairs(part) do
-            if type(k) == "string" then
-                print("  Header: " .. k .. " = " .. v)
-            end
-        end
-
-        -- Data chunks are stored in array part
-        for j, chunk in ipairs(part) do
-            print("  Data: " .. chunk)
-        end
-    end
-else
-    print("Parse failed")
-end
-```
-
-**Output format:**
-```lua
-{
-    [1] = {  -- First part
-        ["Content-Disposition"] = "form-data; name=\"field1\"",
-        [1] = "value1"  -- Data chunks
-    },
-    [2] = {  -- Second part
-        ["Content-Disposition"] = "form-data; name=\"field2\"",
-        ["Content-Type"] = "text/plain",
-        [1] = "value2"
-    }
-}
-```
-
-**Error handling:**
-```lua
-local result, err = mp.parse(boundary, body)
-if not result then
-    print("Parse error: " .. err)
-end
-```
-
-### 2. Advanced Streaming Parser (For custom processing)
+Create a parser with custom callbacks:
 
 ```lua
 local mp = require("multipart_parser")
@@ -260,60 +195,9 @@ parser:free()
 
 ### Module Functions
 
-#### `mp.parse(boundary, body)`
-
-**Simple parse function** - Parses entire multipart message and returns table structure.
-
-**Parameters:**
-- `boundary` (string): The boundary string (without "--" prefix)
-- `body` (string): The complete multipart message body
-
-**Returns:**
-- On success: Table containing parsed parts (see structure below)
-- On error: `nil, error_message`
-
-**Result Structure:**
-```lua
-{
-    [1] = {  -- First part (array index)
-        ["Header-Name"] = "header-value",  -- Headers as key-value pairs
-        [1] = "data chunk 1",  -- Data chunks as array elements
-        [2] = "data chunk 2",
-        ...
-    },
-    [2] = {  -- Second part
-        ...
-    }
-}
-```
-
-**Example:**
-```lua
-local result, err = mp.parse("boundary", body)
-if result then
-    for i, part in ipairs(result) do
-        -- Access headers
-        local content_type = part["Content-Type"]
-
-        -- Access data chunks
-        for j, chunk in ipairs(part) do
-            print(chunk)
-        end
-    end
-else
-    print("Error: " .. err)
-end
-```
-
-**Performance Notes:**
-- Very efficient - directly builds result table on Lua stack
-- No intermediate allocations or copies
-- Suitable for most use cases where entire message is available
-- Memory efficient - data is not buffered in C
-
 #### `mp.new(boundary, [callbacks])`
 
-**Advanced streaming parser** - Create a parser with custom callbacks for fine-grained control.
+**Streaming parser** - Create a parser with custom callbacks for fine-grained control.
 
 **Parameters:**
 - `boundary` (string): The boundary string (without "--" prefix)

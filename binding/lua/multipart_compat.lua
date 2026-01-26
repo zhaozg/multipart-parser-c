@@ -1,6 +1,5 @@
 -- Compatibility layer for multipart parser
--- Provides a high-level parse function compatible with existing test expectations
--- Uses callback-based interface for flexible parsing
+-- Wraps mp.parse to provide test-compatible output format
 local mp = require("multipart_parser")
 
 local M = {}
@@ -9,16 +8,13 @@ local M = {}
 local function extract_param(header, param_name)
   if not header then return nil end
   -- Use word boundary to avoid matching "filename" when looking for "name"
-  -- Match: ; name="value" or start name="value"
   local pattern = '[;%s]' .. param_name .. '%s*=%s*"([^"]*)"'
   local value = header:match(pattern)
   if not value then
-    -- Try without quotes
     pattern = '[;%s]' .. param_name .. '%s*=%s*([^;%s]*)'
     value = header:match(pattern)
   end
   if not value then
-    -- Try at the start of string
     pattern = '^' .. param_name .. '%s*=%s*"([^"]*)"'
     value = header:match(pattern)
   end
@@ -35,120 +31,87 @@ local function extract_boundary(content_type)
   return extract_param(content_type, "boundary")
 end
 
--- Parse multipart data recursively
-local function parse_multipart(boundary, body)
+-- Transform mp.parse output to test-compatible format
+local function transform_parts(parts)
   local result = {}
-  local current_part = nil
-  local current_field = nil
-  local current_headers = {}
-  local nested_parser = nil
-  local nested_boundary = nil
-  local nested_content_chunks = {}
   
-  local callbacks = {
-    on_part_data_begin = function()
-      current_part = {data_chunks = {}}
-      current_headers = {}
-      current_field = nil
-      nested_parser = nil
-      nested_boundary = nil
-      nested_content_chunks = {}
-      return 0
-    end,
-    
-    on_header_field = function(data)
-      current_field = data
-      return 0
-    end,
-    
-    on_header_value = function(data)
-      if current_field then
-        current_headers[current_field] = data
-        current_field = nil
-      end
-      return 0
-    end,
-    
-    on_headers_complete = function()
-      -- Check if this is nested multipart
-      local content_type = current_headers["Content-Type"] or current_headers["Content-type"] or current_headers["content-type"]
-      if content_type and content_type:match("multipart/") then
-        nested_boundary = extract_boundary(content_type)
-      end
-      return 0
-    end,
-    
-    on_part_data = function(data)
-      if nested_boundary then
-        -- Collecting data for nested multipart parsing
-        table.insert(nested_content_chunks, data)
-      else
-        -- Regular data
-        table.insert(current_part.data_chunks, data)
-      end
-      return 0
-    end,
-    
-    on_part_data_end = function()
-      -- Get field name
-      local disp = current_headers["Content-Disposition"] or current_headers["content-disposition"]
-      local field_name = nil
-      if disp then
-        field_name = extract_param(disp, "name")
-      end
+  for _, part in ipairs(parts) do
+    -- Process only if part is a table
+    if type(part) == "table" then
+      -- Collect headers (case-insensitive)
+      local disp = part["Content-Disposition"] or part["content-disposition"]
+      local content_type = part["Content-Type"] or part["Content-type"] or part["content-type"]
       
-      -- Process the part
+      -- Extract field name and filename
+      local field_name = disp and extract_param(disp, "name")
+      local filename = disp and extract_param(disp, "filename")
+      
+      -- Collect data chunks
+      local data_chunks = {}
+      for k, v in pairs(part) do
+        if type(k) == "number" then
+          table.insert(data_chunks, v)
+        end
+      end
+      local combined_data = table.concat(data_chunks)
+      
+      -- Check for nested multipart
+      local is_multipart = content_type and content_type:match("multipart/")
+      
       local value
-      if nested_boundary then
+      if is_multipart then
         -- Parse nested multipart
-        local nested_content = table.concat(nested_content_chunks)
-        local nested_result = parse_multipart(nested_boundary, nested_content)
-        -- For nested multipart/mixed, convert the result to an array
-        -- Check if the nested parts have field names or are attachments
-        local has_field_names = false
-        for k, v in pairs(nested_result) do
-          if type(k) == "string" then
-            has_field_names = true
-            break
-          end
-        end
-        if has_field_names then
-          -- Has named fields, return as-is (nested form data)
-          value = nested_result
-        else
-          -- All numeric indices, return as array (multipart/mixed)
-          local arr = {}
-          for i = 1, #nested_result do
-            if nested_result[i] then
-              table.insert(arr, nested_result[i])
+        local nested_boundary = extract_boundary(content_type)
+        if nested_boundary then
+          local nested_parts, err = mp.parse(nested_boundary, combined_data)
+          if nested_parts then
+            local nested_result = transform_parts(nested_parts)
+            -- Check if all nested parts are numeric (multipart/mixed attachments)
+            local has_names = false
+            for k, v in pairs(nested_result) do
+              if type(k) == "string" then
+                has_names = true
+                break
+              end
             end
+            if has_names then
+              value = nested_result
+            else
+              -- Convert to array
+              local arr = {}
+              for i = 1, #nested_result do
+                if nested_result[i] then
+                  table.insert(arr, nested_result[i])
+                end
+              end
+              value = arr
+            end
+          else
+            -- Nested parse failed, use raw data
+            value = combined_data
           end
-          value = arr
+        else
+          value = combined_data
         end
-      else
-        -- Regular field or file
-        local combined_data = table.concat(current_part.data_chunks)
-        local filename = disp and extract_param(disp, "filename")
-        local content_type = current_headers["Content-Type"] or current_headers["Content-type"] or current_headers["content-type"]
-        
-        if filename ~= nil then
-          -- File upload (has filename parameter)
-          value = {combined_data}
-          value.filename = filename
-          if content_type then
-            value["Content-Type"] = content_type
-          end
-          -- Add other headers (case-insensitive filtering)
-          for k, v in pairs(current_headers) do
+      elseif filename ~= nil then
+        -- File upload (has filename parameter)
+        value = {combined_data}
+        value.filename = filename
+        if content_type then
+          value["Content-Type"] = content_type
+        end
+        -- Add other headers (case-insensitive filtering)
+        for k, v in pairs(part) do
+          if type(k) == "string" then
             local k_lower = k:lower()
             if k_lower ~= "content-disposition" and k_lower ~= "content-type" then
               value[k] = v
             end
           end
-        else
-          -- Simple field (no filename, even if it has Content-Type)
-          value = combined_data
         end
+      else
+        -- Simple field
+        value = combined_data
       end
       
       -- Add to result
@@ -173,24 +136,7 @@ local function parse_multipart(boundary, body)
         end
         result[idx] = value
       end
-      
-      return 0
-    end,
-  }
-  
-  -- Create parser and execute
-  local parser = mp.new(boundary, callbacks)
-  if not parser then
-    return {}
-  end
-  
-  local parsed = parser:execute(body)
-  parser:free()
-  
-  -- Check for errors
-  if parsed ~= #body then
-    -- Partial parse - still return what we got
-    -- The tests expect us to handle incomplete data gracefully
+    end
   end
   
   return result
@@ -204,8 +150,14 @@ function M.parse(body, content_type)
     return {}
   end
   
-  -- Parse using callback-based interface
-  return parse_multipart(boundary, body)
+  -- Parse using mp.parse
+  local parts, err = mp.parse(boundary, body)
+  if not parts then
+    return {}
+  end
+  
+  -- Transform to expected format
+  return transform_parts(parts)
 end
 
 return M
