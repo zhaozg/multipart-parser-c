@@ -46,12 +46,10 @@ local function transform_parts(parts)
       local field_name = disp and extract_param(disp, "name")
       local filename = disp and extract_param(disp, "filename")
       
-      -- Collect data chunks
+      -- Collect data chunks in order
       local data_chunks = {}
-      for k, v in pairs(part) do
-        if type(k) == "number" then
-          table.insert(data_chunks, v)
-        end
+      for i = 1, #part do
+        table.insert(data_chunks, part[i])
       end
       local combined_data = table.concat(data_chunks)
       
@@ -97,14 +95,11 @@ local function transform_parts(parts)
         -- File upload (has filename parameter)
         value = {combined_data}
         value.filename = filename
-        if content_type then
-          value["Content-Type"] = content_type
-        end
-        -- Add other headers (case-insensitive filtering)
+        -- Add all headers except Content-Disposition (preserve original case)
         for k, v in pairs(part) do
           if type(k) == "string" then
             local k_lower = k:lower()
-            if k_lower ~= "content-disposition" and k_lower ~= "content-type" then
+            if k_lower ~= "content-disposition" then
               value[k] = v
             end
           end
