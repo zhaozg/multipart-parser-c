@@ -52,6 +52,11 @@ The Lua binding provides three levels of API:
 
 ### High-Level API
 
+The `parse()` and `build()` functions are inverse operations:
+- `parse()` converts multipart message → Lua table
+- `build()` converts Lua table → multipart message
+- **Round-trip guarantee**: `parse(build(data))` returns equivalent data to the original (though the multipart message body may differ in boundary or field order)
+
 #### Parsing Multipart Data
 
 The `multipart.parse()` function parses a complete multipart message:
@@ -279,19 +284,29 @@ Parse a complete multipart/form-data message into a Lua table.
 - `content_type` (string): Content-Type header value (e.g., "multipart/form-data; boundary=xyz")
 
 **Returns:**
-- (table) Parsed data structure where:
-  - Simple fields are stored as string values
-  - File uploads are stored as tables with `[1]=data`, `filename=name`, and other headers
-  - Repeated fields become arrays
-  - Parts without names use numeric indices
-  - Nested multipart/mixed are parsed recursively
+- (table) Parsed data structure with the following rules:
+  - **Simple fields**: Field name as key, field value as string
+    - Example: `{username = "john"}` for a field named "username" with value "john"
+  - **File uploads**: Field name as key, table value with:
+    - `[1]` = file content (string)
+    - `filename` = filename from Content-Disposition header
+    - Additional headers as key-value pairs (e.g., `["Content-Type"] = "image/jpeg"`)
+    - Example: `{avatar = {[1] = "..data..", filename = "photo.jpg", ["Content-Type"] = "image/jpeg"}}`
+  - **Repeated fields**: Field name as key, array of values
+    - Example: `{tags = {"tag1", "tag2", "tag3"}}` for multiple fields with name "tags"
+  - **Nested multipart/mixed**: Field name as key, array of file tables
+    - Example: `{files = {{[1] = "data1", filename = "f1.txt"}, {[1] = "data2", filename = "f2.txt"}}}`
+  - **Parts without names**: Numeric indices starting from 1
+    - Example: `{[1] = {[1] = "data", filename = "file.dat"}}` for attachment without name attribute
 
 **Example:**
 ```lua
 local multipart = require("multipart")
 local data = multipart.parse(body, content_type)
-print(data.username)  -- Access field value
-print(data.file.filename)  -- Access filename
+print(data.username)  -- Access simple field value
+print(data.avatar.filename)  -- Access filename
+print(data.avatar[1])  -- Access file content
+print(data.tags[1])  -- Access first repeated field value
 ```
 
 #### `multipart.build(data, [boundary])`
@@ -508,8 +523,7 @@ cd binding/lua/tests
 luajit test_core.lua          # Low-level parser tests
 luajit test_state.lua          # State management tests
 luajit test_streaming.lua      # Streaming parser tests
-luajit test_multipart.lua      # High-level parse() tests
-luajit test_build.lua          # High-level build() tests
+luajit test_multipart.lua      # High-level parse() and build() tests
 luajit test_large_data.lua     # Large data handling tests
 ```
 
@@ -523,6 +537,8 @@ The test suite covers:
 - Edge cases and error handling
 - Nested multipart/mixed messages
 - Special characters in field names, filenames, and values
+
+**Note**: The parse() and build() tests are combined in `test_multipart.lua` with 26 tests total (13 parse tests + 13 build/round-trip tests).
 
 ### Large Data Test (4GB Simulation)
 

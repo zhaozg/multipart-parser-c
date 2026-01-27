@@ -57,9 +57,6 @@ test-core: $(TARGET)
 test-multipart: $(TARGET)
 	@cd tests && luajit test_multipart.lua
 
-test-build: $(TARGET)
-	@cd tests && luajit test_build.lua
-
 test-state: $(TARGET)
 	@cd tests && (luajit test_state.lua || lua test_state.lua)
 
@@ -79,4 +76,4 @@ example-streaming: $(TARGET)
 example-build: $(TARGET)
 	@cd examples && luajit build_usage.lua
 
-.PHONY: all install clean test test-core test-build test-state test-streaming test-large example-basic example-streaming example-build
+.PHONY: all install clean test test-core test-multipart test-state test-streaming test-large example-basic example-streaming example-build

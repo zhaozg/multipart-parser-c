@@ -1,6 +1,6 @@
 #!/usr/bin/env luajit
--- Test suite for multipart-parser compatibility layer
--- Converted from test-multipart.lua (luvit/tap format) to standard test format
+--- Test suite for multipart parse and build functions
+-- Tests both parsing and building of multipart/form-data messages
 
 -- Add the binding directory to package.cpath and package.path
 package.cpath = package.cpath .. ";../?.so"
@@ -8,6 +8,7 @@ package.path = package.path .. ";../?.lua"
 
 local mp= require("multipart")
 local parse = mp.parse
+local build = mp.build
 
 -- Test results tracking
 local tests_run = 0
@@ -421,13 +422,278 @@ local function test_special_char_field()
   test_pass()
 end
 
+-- ============================================
+-- BUILD FUNCTION TESTS (Round-trip tests)
+-- ============================================
+
+-- Test: Build simple field
+local function test_build_simple_field()
+  test_start("build: simple field")
+  local data = { field1 = "value1" }
+  local body, content_type = build(data)
+
+  -- Parse it back to verify
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build multiple fields
+local function test_build_multiple_fields()
+  test_start("build: multiple fields")
+  local data = {
+    field1 = "value1",
+    field2 = "value2",
+    field3 = "value3"
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build file upload
+local function test_build_file_upload()
+  test_start("build: file upload")
+  local data = {
+    field1 = "text value",
+    file = {
+      [1] = "file content here",
+      filename = "test.txt",
+      ["Content-Type"] = "text/plain"
+    }
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build repeated field
+local function test_build_repeated_field()
+  test_start("build: repeated field")
+  local data = {
+    tags = { "tag1", "tag2", "tag3" }
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build nested multipart (multipart/mixed)
+local function test_build_nested_multipart()
+  test_start("build: nested multipart (multipart/mixed)")
+  local data = {
+    description = "Multiple files",
+    files = {
+      { [1] = "content of file 1", filename = "file1.txt", ["Content-Type"] = "text/plain" },
+      { [1] = "content of file 2", filename = "file2.txt", ["Content-Type"] = "text/plain" }
+    }
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build empty file
+local function test_build_empty_file()
+  test_start("build: empty file")
+  local data = {
+    field1 = "value",
+    file = {
+      [1] = "",
+      filename = "empty.txt",
+      ["Content-Type"] = "text/plain"
+    }
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build special characters in field names
+local function test_build_special_chars_in_names()
+  test_start("build: special characters in field names")
+  local data = {
+    ["field-name"] = "value",
+    ["field_name"] = "another value"
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build special characters in values
+local function test_build_special_chars_in_values()
+  test_start("build: special characters in values")
+  local data = {
+    field1 = "value with\nnewlines\r\nand\ttabs",
+    field2 = "quotes: \"quoted\" text"
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build UTF-8 content
+local function test_build_utf8_content()
+  test_start("build: UTF-8 content")
+  local data = {
+    field1 = "中文内容",
+    field2 = "🎉 emoji",
+    field3 = "Ελληνικά"
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build empty data
+local function test_build_empty_data()
+  test_start("build: empty data")
+  local data = {}
+  local body, content_type = build(data)
+
+  -- Should have closing boundary in body
+  local boundary_match = content_type:match("boundary=([^;%s]+)")
+  if not boundary_match then
+    test_fail("No boundary in Content-Type")
+    return
+  end
+
+  -- Check for closing boundary using plain string match
+  if not body:find("--" .. boundary_match .. "--", 1, true) then
+    test_fail("Missing closing boundary in body")
+    return
+  end
+
+  -- Parse back should return empty table
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed for empty data")
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build custom boundary
+local function test_build_custom_boundary()
+  test_start("build: custom boundary")
+  local data = { field = "value" }
+  local custom_boundary = "MyCustomBoundary123"
+  local body, content_type = build(data, custom_boundary)
+
+  -- Check that custom boundary is used (using plain string find)
+  if not content_type:find(custom_boundary, 1, true) then
+    test_fail("Custom boundary not in Content-Type")
+    return
+  end
+
+  if not body:find("--" .. custom_boundary, 1, true) then
+    test_fail("Custom boundary not in body")
+    return
+  end
+
+  -- Parse back
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed with custom boundary")
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build filename with special characters
+local function test_build_filename_special_chars()
+  test_start("build: filename with special characters")
+  local data = {
+    file = {
+      [1] = "content",
+      filename = "file with spaces.txt",
+      ["Content-Type"] = "text/plain"
+    }
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed\nExpected: " .. dump(data) .. "\nGot: " .. dump(parsed))
+    return
+  end
+  test_pass()
+end
+
+-- Test: Build binary data
+local function test_build_binary_data()
+  test_start("build: binary data")
+  local binary_content = string.char(0, 1, 2, 3, 255, 254, 253)
+  local data = {
+    file = {
+      [1] = binary_content,
+      filename = "binary.dat",
+      ["Content-Type"] = "application/octet-stream"
+    }
+  }
+  local body, content_type = build(data)
+
+  local parsed = parse(body, content_type)
+  if not deep_equal(data, parsed) then
+    test_fail("Round-trip failed for binary data")
+    return
+  end
+  test_pass()
+end
+
 -- Main test execution
 local function run_all_tests()
   print("===========================================")
-  print("Multipart Parser Compatibility Layer Tests")
+  print("Multipart Parse and Build Function Tests")
   print("===========================================")
   print()
-  -- Run all tests
+  
+  -- Parse tests
+  print("--- Parse Tests ---")
   test_suite_1()
   test_suite_2()
   -- test_suite_3()  -- Removed: Non-compliant test - expects specific CRLF handling in data
@@ -445,6 +711,23 @@ local function run_all_tests()
   -- test_empty_part()  -- Removed: Non-compliant test - edge case with empty part data
   -- test_crlf_strict()  -- Removed: Non-compliant test - expects trailing CRLF preservation (RFC strips it)
   test_special_char_field()
+  
+  -- Build tests
+  print("\n--- Build Tests (Round-trip) ---")
+  test_build_simple_field()
+  test_build_multiple_fields()
+  test_build_file_upload()
+  test_build_repeated_field()
+  test_build_nested_multipart()
+  test_build_empty_file()
+  test_build_special_chars_in_names()
+  test_build_special_chars_in_values()
+  test_build_utf8_content()
+  test_build_empty_data()
+  test_build_custom_boundary()
+  test_build_filename_special_chars()
+  test_build_binary_data()
+  
   -- Print summary
   print()
   print("===========================================")
