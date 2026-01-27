@@ -1,11 +1,23 @@
--- Compatibility layer for multipart parser
--- Provides a high-level parse function compatible with existing test expectations
--- Uses callback-based interface for flexible parsing
+--- Multipart form-data parser and builder for Lua
+-- Provides high-level functions for parsing and building multipart/form-data
+-- compatible with RFC 7578 (multipart/form-data) and RFC 2046 (MIME)
+--
+-- @module multipart
+-- @author multipart-parser-c project
+-- @license MIT
+-- @copyright 2024
+
 local mp = require("multipart_parser")
 
 local M = {}
+M._VERSION = "1.0.0"
 
--- Helper to extract value from a header like 'form-data; name="field"'
+--- Extract parameter value from a header string
+-- Handles both quoted and unquoted parameter values
+-- @local
+-- @param header (string) Header value to parse
+-- @param param_name (string) Parameter name to extract
+-- @return (string|nil) Parameter value or nil if not found
 local function extract_param(header, param_name)
   if not header then return nil end
   -- Use word boundary to avoid matching "filename" when looking for "name"
@@ -26,13 +38,21 @@ local function extract_param(header, param_name)
   return value
 end
 
--- Helper to extract boundary from Content-Type header
+--- Extract boundary from Content-Type header
+-- @local
+-- @param content_type (string) Content-Type header value
+-- @return (string|nil) Boundary string or nil if not found
 local function extract_boundary(content_type)
   if not content_type then return nil end
   return extract_param(content_type, "boundary")
 end
 
--- Parse multipart data recursively
+--- Parse multipart data recursively
+-- Internal function to handle nested multipart messages
+-- @local
+-- @param boundary (string) Boundary delimiter
+-- @param body (string) Multipart message body
+-- @return (table) Parsed parts as a table
 local function parse_multipart(boundary, body)
   local result = {}
   local current_part = nil
@@ -181,7 +201,28 @@ local function parse_multipart(boundary, body)
   return result
 end
 
--- Main parse function compatible with test expectations
+--- Parse multipart/form-data message
+-- Parses a multipart message body and returns structured data
+--
+-- @param body (string) The multipart message body to parse
+-- @param content_type (string) Content-Type header value (e.g., "multipart/form-data; boundary=xyz")
+--
+-- @return (table) Parsed data structure where:
+--   - Simple fields are stored as string values
+--   - File uploads are stored as tables with [1]=data, filename=name, and headers
+--   - Repeated fields become arrays
+--   - Parts without names use numeric indices
+--   - Nested multipart/mixed are parsed recursively
+--
+-- @usage
+-- local multipart = require("multipart")
+-- local body = "--boundary\r\n" ..
+--              "Content-Disposition: form-data; name=\"field\"\r\n" ..
+--              "\r\n" ..
+--              "value\r\n" ..
+--              "--boundary--\r\n"
+-- local data = multipart.parse(body, "multipart/form-data; boundary=boundary")
+-- -- data = {field = "value"}
 function M.parse(body, content_type)
   -- Extract boundary from content type
   local boundary = extract_boundary(content_type)
@@ -191,6 +232,189 @@ function M.parse(body, content_type)
 
   -- Parse the multipart body
   return parse_multipart(boundary, body)
+end
+
+--- Generate a random boundary string
+-- Creates a boundary that is unlikely to appear in content
+-- @local
+-- @return (string) Random boundary string
+local function generate_boundary()
+  local chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  local boundary = "----MultipartBoundary"
+  math.randomseed(os.time() + os.clock() * 1000000)
+  for i = 1, 16 do
+    local idx = math.random(1, #chars)
+    boundary = boundary .. chars:sub(idx, idx)
+  end
+  return boundary
+end
+
+--- Encode a field name or filename for use in Content-Disposition header
+-- Properly quotes and escapes special characters
+-- @local
+-- @param value (string) Value to encode
+-- @return (string) Encoded value
+local function encode_disposition_value(value)
+  if not value then return '""' end
+  -- Escape quotes and backslashes
+  local escaped = value:gsub('\\', '\\\\'):gsub('"', '\\"')
+  return '"' .. escaped .. '"'
+end
+
+--- Build multipart/form-data message from structured data
+-- Creates a properly formatted multipart message from Lua data
+--
+-- @param data (table) Data to encode as multipart, where:
+--   - Simple string values become form fields
+--   - Tables with [1]=data and filename=name become file uploads
+--   - Tables with [1]=data and headers become parts with custom headers
+--   - Arrays of values create repeated fields
+--   - Nested tables with numeric indices become multipart/mixed
+--
+-- @param boundary (string|nil) Optional boundary string (auto-generated if nil)
+--
+-- @return (string, string) Returns two values:
+--   1. The multipart message body
+--   2. The Content-Type header value (e.g., "multipart/form-data; boundary=xyz")
+--
+-- @usage
+-- local multipart = require("multipart")
+-- local data = {
+--   field1 = "value1",
+--   file = {
+--     [1] = "file content",
+--     filename = "test.txt",
+--     ["Content-Type"] = "text/plain"
+--   }
+-- }
+-- local body, content_type = multipart.build(data)
+-- -- Use body and content_type in HTTP request
+function M.build(data, boundary)
+  if type(data) ~= "table" then
+    error("data must be a table", 2)
+  end
+
+  -- Generate boundary if not provided
+  boundary = boundary or generate_boundary()
+
+  local parts = {}
+
+  -- Helper to build a single part
+  local function build_part(name, value)
+    local part_lines = {}
+
+    -- Start with boundary
+    table.insert(part_lines, "--" .. boundary)
+
+    -- Determine part type and build headers
+    if type(value) == "string" then
+      -- Simple field
+      table.insert(part_lines, "Content-Disposition: form-data; name=" .. encode_disposition_value(name))
+      table.insert(part_lines, "")
+      table.insert(part_lines, value)
+    elseif type(value) == "table" then
+      -- Check if it's a file (has [1] and filename)
+      local is_file = value[1] ~= nil and value.filename ~= nil
+      -- Check if it's nested multipart (numeric keys only, no filename)
+      local is_nested = not value.filename and value[1] ~= nil
+
+      if is_file then
+        -- File upload
+        local disp = "Content-Disposition: form-data; name=" .. encode_disposition_value(name)
+        disp = disp .. "; filename=" .. encode_disposition_value(value.filename)
+        table.insert(part_lines, disp)
+
+        -- Add other headers (e.g., Content-Type)
+        for k, v in pairs(value) do
+          if type(k) == "string" and k ~= "filename" then
+            table.insert(part_lines, k .. ": " .. v)
+          end
+        end
+
+        table.insert(part_lines, "")
+        table.insert(part_lines, value[1])
+      elseif is_nested then
+        -- Nested multipart/mixed
+        local nested_boundary = generate_boundary()
+        local nested_parts = {}
+
+        -- Build each nested part
+        for i = 1, #value do
+          local nested_value = value[i]
+          local nested_part_lines = {}
+
+          table.insert(nested_part_lines, "--" .. nested_boundary)
+
+          if type(nested_value) == "table" and nested_value.filename then
+            -- File in nested multipart
+            local disp = "Content-Disposition: attachment; filename=" .. encode_disposition_value(nested_value.filename)
+            table.insert(nested_part_lines, disp)
+
+            for k, v in pairs(nested_value) do
+              if type(k) == "string" and k ~= "filename" then
+                table.insert(nested_part_lines, k .. ": " .. v)
+              end
+            end
+
+            table.insert(nested_part_lines, "")
+            table.insert(nested_part_lines, nested_value[1])
+          else
+            -- Simple data in nested multipart
+            table.insert(nested_part_lines, "")
+            table.insert(nested_part_lines, tostring(nested_value))
+          end
+
+          table.insert(nested_parts, table.concat(nested_part_lines, "\r\n"))
+        end
+
+        -- Close nested multipart
+        table.insert(nested_parts, "--" .. nested_boundary .. "--")
+
+        -- Build outer part with nested multipart
+        local disp = "Content-Disposition: form-data; name=" .. encode_disposition_value(name)
+        table.insert(part_lines, disp)
+        table.insert(part_lines, "Content-Type: multipart/mixed; boundary=" .. nested_boundary)
+        table.insert(part_lines, "")
+        table.insert(part_lines, table.concat(nested_parts, "\r\n"))
+      else
+        -- Table without [1] or filename - treat as simple field with string representation
+        table.insert(part_lines, "Content-Disposition: form-data; name=" .. encode_disposition_value(name))
+        table.insert(part_lines, "")
+        table.insert(part_lines, tostring(value))
+      end
+    else
+      -- Other types - convert to string
+      table.insert(part_lines, "Content-Disposition: form-data; name=" .. encode_disposition_value(name))
+      table.insert(part_lines, "")
+      table.insert(part_lines, tostring(value))
+    end
+
+    return table.concat(part_lines, "\r\n")
+  end
+
+  -- Process all fields
+  for name, value in pairs(data) do
+    if type(name) == "string" then
+      -- Named field
+      if type(value) == "table" and value[1] and not value.filename and type(value[2]) ~= "nil" then
+        -- Array of values (repeated field)
+        for i = 1, #value do
+          table.insert(parts, build_part(name, value[i]))
+        end
+      else
+        -- Single value
+        table.insert(parts, build_part(name, value))
+      end
+    end
+  end
+
+  -- Close multipart
+  table.insert(parts, "--" .. boundary .. "--")
+
+  local body = table.concat(parts, "\r\n")
+  local content_type = "multipart/form-data; boundary=" .. boundary
+
+  return body, content_type
 end
 
 return M
