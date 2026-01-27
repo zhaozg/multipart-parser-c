@@ -94,27 +94,6 @@ local parser = mp.new(boundary, callbacks)
 parser:execute(body)
 ```
 
-### Simple Parse (One-Shot)
-```lua
--- For complete data in memory
-local result = mp.parse(boundary, body)
-
-for i, part in ipairs(result) do
-  print("Part", i)
-  print("  Content-Type:", part["Content-Type"])
-  print("  Data:", table.concat(part))
-end
-```
-
-### Progress Monitoring
-```lua
-local result = mp.parse(boundary, large_data, function(parsed, total, percent)
-  io.write(string.format("\rProgress: %.1f%%", percent))
-  io.flush()
-  return 0  -- Continue
-end)
-```
-
 ## Advanced Features
 
 ### Error Handling

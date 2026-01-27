@@ -1,18 +1,20 @@
 # Lua Binding for multipart-parser-c
 
-A complete Lua/LuaJIT binding for the multipart-parser-c library, providing a simple and efficient way to parse multipart/form-data in Lua applications.
+A complete Lua/LuaJIT binding for the multipart-parser-c library, providing a simple and efficient way to parse and build multipart/form-data in Lua applications.
 
 ## Features
 
 - **Full API Coverage**: All parser functionality exposed to Lua
 - **LuaJIT Compatible**: Optimized for LuaJIT 2.0+ (also works with Lua 5.1+)
-- **Two APIs**: Simple parse() function and advanced streaming parser
+- **Two high level APIs**: High-level parse()/build() functions and advanced streaming parser
+- **Parse & Build**: Parse multipart data or build it from structured Lua tables
 - **Stream Processing**: Parse multipart data in chunks without buffering entire content
 - **Callback-based**: Efficient event-driven parsing
 - **Binary Safe**: Handles binary data (NULL bytes, high bytes) correctly
 - **UTF-8 Support**: Properly handles UTF-8 encoded content
 - **Error Handling**: Comprehensive error codes and messages
 - **High Performance**: Zero-copy data passing, minimal overhead
+- **LDoc Documented**: Complete API documentation with examples
 
 ## Building
 
@@ -44,76 +46,89 @@ sudo make install
 
 ## Usage
 
-There are two ways to use this binding:
+The Lua binding provides two levels of API:
+1. **High-level**: Simple `parse()` and `build()` functions for common use cases
+2. **Low-level**: Streaming parser with callbacks for fine-grained control
 
-### 1. Simple Parse Function (Recommended for most use cases)
+### High-Level API
 
-The `parse()` function provides a simple, efficient interface that parses the entire multipart message and returns a Lua table:
+The `parse()` and `build()` functions are inverse operations:
+- `parse()` converts multipart message → Lua table
+- `build()` converts Lua table → multipart message
+- **Round-trip guarantee**: `parse(build(data))` returns equivalent data to the original (though the multipart message body may differ in boundary or field order)
+
+#### Parsing Multipart Data
+
+The `multipart.parse()` function parses a complete multipart message:
 
 ```lua
-local mp = require("multipart_parser")
+local multipart = require("multipart")
 
-local boundary = "boundary"
-local body = [[--boundary
-Content-Disposition: form-data; name="field1"
-
-value1
+local body = [[
 --boundary
-Content-Disposition: form-data; name="field2"
-Content-Type: text/plain
+Content-Disposition: form-data; name="username"
 
-value2
---boundary--]]
+john_doe
+--boundary
+Content-Disposition: form-data; name="avatar"; filename="photo.jpg"
+Content-Type: image/jpeg
 
--- Parse and get result as table
-local result = mp.parse(boundary, body)
+...binary image data...
+--boundary--
+]]
 
-if result then
-    -- result is an array of parts
-    for i, part in ipairs(result) do
-        print("Part " .. i .. ":")
+local content_type = "multipart/form-data; boundary=boundary"
+local data = multipart.parse(body, content_type)
 
-        -- Headers are stored as key-value pairs
-        for k, v in pairs(part) do
-            if type(k) == "string" then
-                print("  Header: " .. k .. " = " .. v)
-            end
-        end
-
-        -- Data chunks are stored in array part
-        for j, chunk in ipairs(part) do
-            print("  Data: " .. chunk)
-        end
-    end
-else
-    print("Parse failed")
-end
+-- Access parsed data
+print(data.username)  -- "john_doe"
+print(data.avatar.filename)  -- "photo.jpg"
+print(data.avatar["Content-Type"])  -- "image/jpeg"
+print(data.avatar[1])  -- image data
 ```
 
-**Output format:**
+#### Building Multipart Data
+
+The `multipart.build()` function creates multipart messages from Lua tables:
+
 ```lua
-{
-    [1] = {  -- First part
-        ["Content-Disposition"] = "form-data; name=\"field1\"",
-        [1] = "value1"  -- Data chunks
-    },
-    [2] = {  -- Second part
-        ["Content-Disposition"] = "form-data; name=\"field2\"",
-        ["Content-Type"] = "text/plain",
-        [1] = "value2"
-    }
+local multipart = require("multipart")
+
+-- Simple fields
+local data = {
+  username = "john_doe",
+  email = "john@example.com"
 }
+
+local body, content_type = multipart.build(data)
+-- Use body and content_type in HTTP request
+
+-- File upload
+local file_data = {
+  description = "Profile photo",
+  avatar = {
+    [1] = file_content,  -- file data
+    filename = "photo.jpg",
+    ["Content-Type"] = "image/jpeg"
+  }
+}
+
+local body, content_type = multipart.build(file_data)
+
+-- Multiple files (creates nested multipart/mixed)
+local multi_files = {
+  documents = {
+    { [1] = "doc1 content", filename = "doc1.pdf", ["Content-Type"] = "application/pdf" },
+    { [1] = "doc2 content", filename = "doc2.pdf", ["Content-Type"] = "application/pdf" }
+  }
+}
+
+local body, content_type = multipart.build(multi_files)
 ```
 
-**Error handling:**
-```lua
-local result, err = mp.parse(boundary, body)
-if not result then
-    print("Parse error: " .. err)
-end
-```
+### Low-Level Streaming Parser
 
-### 2. Advanced Streaming Parser (For custom processing)
+Create a parser with custom callbacks:
 
 ```lua
 local mp = require("multipart_parser")
@@ -258,62 +273,78 @@ parser:free()
 
 ## API Reference
 
-### Module Functions
+### High-Level Functions (multipart module)
 
-#### `mp.parse(boundary, body)`
+#### `multipart.parse(body, content_type)`
 
-**Simple parse function** - Parses entire multipart message and returns table structure.
+Parse a complete multipart/form-data message into a Lua table.
 
 **Parameters:**
-- `boundary` (string): The boundary string (without "--" prefix)
-- `body` (string): The complete multipart message body
+- `body` (string): The multipart message body to parse
+- `content_type` (string): Content-Type header value (e.g., "multipart/form-data; boundary=xyz")
 
 **Returns:**
-- On success: Table containing parsed parts (see structure below)
-- On error: `nil, error_message`
-
-**Result Structure:**
-```lua
-{
-    [1] = {  -- First part (array index)
-        ["Header-Name"] = "header-value",  -- Headers as key-value pairs
-        [1] = "data chunk 1",  -- Data chunks as array elements
-        [2] = "data chunk 2",
-        ...
-    },
-    [2] = {  -- Second part
-        ...
-    }
-}
-```
+- (table) Parsed data structure with the following rules:
+  - **Simple fields**: Field name as key, field value as string
+    - Example: `{username = "john"}` for a field named "username" with value "john"
+  - **File uploads**: Field name as key, table value with:
+    - `[1]` = file content (string)
+    - `filename` = filename from Content-Disposition header
+    - Additional headers as key-value pairs (e.g., `["Content-Type"] = "image/jpeg"`)
+    - Example: `{avatar = {[1] = "..data..", filename = "photo.jpg", ["Content-Type"] = "image/jpeg"}}`
+  - **Repeated fields**: Field name as key, array of values
+    - Example: `{tags = {"tag1", "tag2", "tag3"}}` for multiple fields with name "tags"
+  - **Nested multipart/mixed**: Field name as key, array of file tables
+    - Example: `{files = {{[1] = "data1", filename = "f1.txt"}, {[1] = "data2", filename = "f2.txt"}}}`
+  - **Parts without names**: Numeric indices starting from 1
+    - Example: `{[1] = {[1] = "data", filename = "file.dat"}}` for attachment without name attribute
 
 **Example:**
 ```lua
-local result, err = mp.parse("boundary", body)
-if result then
-    for i, part in ipairs(result) do
-        -- Access headers
-        local content_type = part["Content-Type"]
-
-        -- Access data chunks
-        for j, chunk in ipairs(part) do
-            print(chunk)
-        end
-    end
-else
-    print("Error: " .. err)
-end
+local multipart = require("multipart")
+local data = multipart.parse(body, content_type)
+print(data.username)  -- Access simple field value
+print(data.avatar.filename)  -- Access filename
+print(data.avatar[1])  -- Access file content
+print(data.tags[1])  -- Access first repeated field value
 ```
 
-**Performance Notes:**
-- Very efficient - directly builds result table on Lua stack
-- No intermediate allocations or copies
-- Suitable for most use cases where entire message is available
-- Memory efficient - data is not buffered in C
+#### `multipart.build(data, [boundary])`
+
+Build a multipart/form-data message from a Lua table.
+
+**Parameters:**
+- `data` (table): Data to encode as multipart, where:
+  - Simple string values become form fields
+  - Tables with `[1]=data` and `filename=name` become file uploads
+  - Arrays of values create repeated fields
+  - Nested tables with numeric indices become multipart/mixed
+- `boundary` (string, optional): Custom boundary string (auto-generated if nil)
+
+**Returns:**
+- (string, string) Two values:
+  1. The multipart message body
+  2. The Content-Type header value (e.g., "multipart/form-data; boundary=xyz")
+
+**Example:**
+```lua
+local multipart = require("multipart")
+local data = {
+  username = "john",
+  file = {
+    [1] = "file content",
+    filename = "test.txt",
+    ["Content-Type"] = "text/plain"
+  }
+}
+local body, content_type = multipart.build(data)
+```
+
+### Low-Level Streaming Parser (multipart_parser module)
 
 #### `mp.new(boundary, [callbacks])`
 
-**Advanced streaming parser** - Create a parser with custom callbacks for fine-grained control.
+**Streaming parser** - Create a parser with custom callbacks for fine-grained control.
 
 **Parameters:**
 - `boundary` (string): The boundary string (without "--" prefix)
@@ -324,6 +355,7 @@ end
 
 **Example:**
 ```lua
+local mp = require("multipart_parser")
 local parser = mp.new("boundary123", {
     on_part_data = function(data)
         print(data)
@@ -488,19 +520,25 @@ luajit run_all_tests.lua
 
 # Or run individual test suites
 cd binding/lua/tests
-luajit test_core.lua
-luajit test_memory.lua
-luajit test_streaming.lua
-luajit test_large_data.lua
+luajit test_core.lua          # Low-level parser tests
+luajit test_state.lua          # State management tests
+luajit test_streaming.lua      # Streaming parser tests
+luajit test_multipart.lua      # High-level parse() and build() tests
+luajit test_large_data.lua     # Large data handling tests
 ```
 
 The test suite covers:
 - Core functionality (parser creation, callbacks, simple parse)
+- High-level parse() and build() functions with round-trip tests
 - Memory management (limits, cleanup, error handling)
 - Streaming support (chunked processing, pause/resume)
 - Large data handling (4GB simulation, performance)
 - Binary data and UTF-8 content
 - Edge cases and error handling
+- Nested multipart/mixed messages
+- Special characters in field names, filenames, and values
+
+**Note**: The parse() and build() tests are combined in `test_multipart.lua` with 26 tests total (13 parse tests + 13 build/round-trip tests).
 
 ### Large Data Test (4GB Simulation)
 
