@@ -233,15 +233,20 @@ local function test_empty_data()
   local data = {}
   local body, content_type = multipart.build(data)
 
-  -- Should have closing boundary
+  -- Helper to escape pattern special characters for Lua pattern matching
+  local function escape_pattern(str)
+    return str:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+  end
+
+  -- Should have closing boundary in body
   local boundary_match = content_type:match("boundary=([^;%s]+)")
   if not boundary_match then
     test_fail("No boundary in Content-Type")
     return
   end
 
-  -- Should have closing boundary in body
-  if not body:match("%-%-" .. boundary_match:gsub("%-", "%%-") .. "%-%-") then
+  -- Check for closing boundary using plain string match
+  if not body:find("--" .. boundary_match .. "--", 1, true) then
     test_fail("Missing closing boundary in body")
     return
   end
@@ -262,13 +267,13 @@ local function test_custom_boundary()
   local custom_boundary = "MyCustomBoundary123"
   local body, content_type = multipart.build(data, custom_boundary)
 
-  -- Check that custom boundary is used
-  if not content_type:match(custom_boundary) then
+  -- Check that custom boundary is used (using plain string find)
+  if not content_type:find(custom_boundary, 1, true) then
     test_fail("Custom boundary not in Content-Type")
     return
   end
 
-  if not body:match("%-%-" .. custom_boundary) then
+  if not body:find("--" .. custom_boundary, 1, true) then
     test_fail("Custom boundary not in body")
     return
   end

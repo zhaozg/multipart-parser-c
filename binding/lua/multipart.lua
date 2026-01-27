@@ -238,10 +238,14 @@ end
 -- Creates a boundary that is unlikely to appear in content
 -- @local
 -- @return (string) Random boundary string
+local random_seeded = false
 local function generate_boundary()
   local chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
   local boundary = "----MultipartBoundary"
-  math.randomseed(os.time() + os.clock() * 1000000)
+  if not random_seeded then
+    math.randomseed(os.time() + os.clock() * 1000000)
+    random_seeded = true
+  end
   for i = 1, 16 do
     local idx = math.random(1, #chars)
     boundary = boundary .. chars:sub(idx, idx)
@@ -392,12 +396,30 @@ function M.build(data, boundary)
     return table.concat(part_lines, "\r\n")
   end
 
+  -- Helper to check if a table is an array (consecutive numeric keys starting from 1)
+  local function is_array(t)
+    if type(t) ~= "table" then return false end
+    local count = 0
+    for k, v in pairs(t) do
+      if type(k) == "number" then
+        count = count + 1
+      end
+    end
+    -- Check if we have consecutive keys from 1 to count
+    for i = 1, count do
+      if t[i] == nil then
+        return false
+      end
+    end
+    return count > 0
+  end
+
   -- Process all fields
   for name, value in pairs(data) do
     if type(name) == "string" then
       -- Named field
-      if type(value) == "table" and value[1] and not value.filename and type(value[2]) ~= "nil" then
-        -- Array of values (repeated field)
+      if type(value) == "table" and not value.filename and is_array(value) and #value > 1 then
+        -- Array of values (repeated field) - must have more than 1 element
         for i = 1, #value do
           table.insert(parts, build_part(name, value[i]))
         end
